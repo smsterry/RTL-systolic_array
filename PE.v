@@ -36,7 +36,7 @@ wire signed [ACC_BWIDTH-1:0] 	product;
 
 // Combinational computing logic
 assign curr_acc	= acc_buf;
-assign product 	= OPND1_in * OPND2_in
+assign product 	= opnd1_buf * opnd2_buf
 assign acc_nxt 	= curr_acc + product;
 
 // Combinational output logic: output wires that will be used by other PEs
