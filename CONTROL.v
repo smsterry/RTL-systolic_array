@@ -23,9 +23,9 @@ module CONTROL #(
 	input wire	STALL,		// Stall
 
 	// Matrix config
-	input wire [MAX_M_SIZE_LOG2-1:0] 	M_SIZE,	// Mat A: M x K
-	input wire [MAX_K_SIZE_LOG2-1:0] 	K_SIZE,
-	input wire [MAX_N_SIZE_LOG2-1:0] 	N_SIZE,	// Mat B: K x N
+	input wire [MAX_M_SIZE_LOG2-1:0] 	M_SIZE_in,	// Mat A: M x K
+	input wire [MAX_K_SIZE_LOG2-1:0] 	K_SIZE_in,
+	input wire [MAX_N_SIZE_LOG2-1:0] 	N_SIZE_in,	// Mat B: K x N
 
 	// SRAM control outputs
 	output wire [OPND1_SRAM_AWIDTH-1:0] OPND1_SRAM_ADDR_out,
@@ -55,6 +55,9 @@ reg 	is_computing;
 reg 	is_flushing;
 
 // Configuration registers
+reg [MAX_M_SIZE_LOG2-1:0] m_size;
+reg [MAX_K_SIZE_LOG2-1:0] k_size;
+reg [MAX_N_SIZE_LOG2-1:0] n_size;
 reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]	num_tile_row_ids;
 reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	num_tile_col_ids;
 
@@ -69,6 +72,7 @@ reg [MAX_K_SIZE_LOG2:0]				compute_count;
 reg [MAX_K_SIZE_LOG2:0]				flush_count;
 
 /* Temporal wire statement & assignment for the next value */
+
 /**
  *	[num_tile_row_ids_nxt, num_tile_col_ids_nxt]
  *	
@@ -82,9 +86,59 @@ reg [MAX_K_SIZE_LOG2:0]				flush_count;
  */
 wire [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0] num_tile_row_ids_nxt;
 wire [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	num_tile_col_ids_nxt;
+wire [MAX_M_SIZE_LOG2-1:0]	m_divisible_by_num_rows;
+wire [MAX_M_SIZE_LOG2-1:0] 	m_not_divisible_by_num_rows;
+wire [MAX_N_SIZE_LOG2-1:0]	n_divisible_by_num_cols;
+wire [MAX_N_SIZE_LOG2-1:0]	n_not_divisible_by_num_cols;
+
+assign m_divisible_by_num_rows 		= M_SIZE_in >> PE_ARRAY_NUM_ROWS_LOG2;
+assign m_not_divisible_by_num_rows 	= m_divisible_by_num_rows + 1;
+assign n_divisible_by_num_cols 		= N_SIZE_in >> PE_ARRAY_NUM_COLS_LOG2;
+assign n_not_divisible_by_num_cols 	= n_divisible_by_num_cols + 1;
+
+assign num_tile_row_ids_nxt	
+	= (M_SIZE_in[PE_ARRAY_NUM_ROWS_LOG2-1:0] == 0)? 
+	m_divisible_by_num_rows : m_not_divisible_by_num_rows;
+assign num_tile_col_ids_nxt	
+	= (N_SIZE_in[PE_ARRAY_NUM_COLS_LOG2-1:0] == 0)? 
+	n_divisible_by_num_cols : n_not_divisible_by_num_cols;
 
 
 
+
+/**
+ *	[compute_to_flush]
+ *	
+ *	Determine if state transition from the computing state to the flushing 
+ * 	state is required or not. This flag is turned on when the computing the 
+ *	current tile is finished.
+ */
+wire compute_to_flush;
+wire curr_end_compute_count;
+
+assign curr_end_compute_count 
+	= k_size + (curr_num_actv_row_ids-1) + (curr_num_actv_col_ids-1);
+assign compute_to_flush
+	 = (compute_count == curr_end_compute_count)? 1 : 0;
+
+/**
+ *	[flush_to_compute, is_finished]
+ *	
+ *	Determine if state transition from the flushing state to the computing 
+ * 	state (or the idle state) is required or not. These flags can be turned
+ * 	on if flushing all accumulated output is finished.
+ */
+wire flush_to_compute;
+wire is_finished;
+wire all_tile_flushed;
+wire all_row_flushed;
+
+assign all_row_flushed = (flush_count == PE_ARRAY_NUM_ROWS)? 1 : 0;
+assign all_tile_flushed 
+	= ((curr_tile_row_id == num_tile_row_ids - 1) 
+	&& (curr_tile_col_id == num_tile_col_ids - 1))? 1 : 0;
+assign flush_to_compute = (all_row_flushed & ~all_tile_flushed);
+assign is_finished		= (all_row_flushed & all_tile_flushed);
 
 
 // Sequential logic: update state
