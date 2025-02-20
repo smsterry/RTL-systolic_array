@@ -50,12 +50,12 @@ always @ (posedge CLK, negedge RSTn) begin
 	end
 	else begin
 		// Push if required
-		if (PUSHE) begin
+		if (PUSHE & ~IS_FULL) begin
 			rear		<= rear_pushed;
 			data[rear]	<= D_in;
 		end
 		// Pop if required
-		if (POPE) begin
+		if (POPE & ~IS_EMPTY) begin
 			front 		<= front_popped;
 		end
 	end
