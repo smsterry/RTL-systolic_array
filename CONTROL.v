@@ -48,6 +48,7 @@ module CONTROL #(
 	output wire 	IS_FINISHED_out
 );
 
+/* Register statement */
 // State registers
 reg 	is_idle;
 reg 	is_computing;
@@ -64,8 +65,25 @@ reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	curr_tile_col_id;
 // Intra-tile logic registers
 reg [PE_ARRAY_NUM_ROWS_LOG2-1:0]	curr_num_actv_row_ids;
 reg [PE_ARRAY_NUM_COLS_LOG2-1:0] 	curr_num_actv_col_ids;
-reg [MAX_K_SIZE_LOG2:0]	compute_count;
-reg [MAX_K_SIZE_LOG2:0]	flush_count;
+reg [MAX_K_SIZE_LOG2:0]				compute_count;
+reg [MAX_K_SIZE_LOG2:0]				flush_count;
+
+/* Temporal wire statement & assignment for the next value */
+/**
+ *	[num_tile_row_ids_nxt, num_tile_col_ids_nxt]
+ *	
+ *	The number of tiles per each column, row.
+ *	Note that these values are determined by M, N, and PE array sizes.
+ * 	Also, note that these values are set only for: idle -> compute
+ * 	e.g.) 
+ *	For 32 x 32 PE array, M = 128, and N = 96:
+ * 		- num_tile_row_ids_nxt = ceil(128 / 32) = 4
+ *		- num_tile_col_ids_nxt = ceil(96 / 32) = 3
+ */
+wire [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0] num_tile_row_ids_nxt;
+wire [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	num_tile_col_ids_nxt;
+
+
 
 
 
@@ -76,7 +94,9 @@ always @ (posedge CLK, negedge RSTn) begin
 		
 	end
 	else begin
-		
+		// Start to compute. Set all signals that are required to compute
+		if (~is_computing & ~is_flushing & START) begin
+		end
 	end
 end
 
