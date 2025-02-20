@@ -16,10 +16,11 @@ module CONTROL #(
 	parameter	MAX_N_SIZE_LOG2			= 9 	// # col entries of the second operand matrix == 511
 ) 
 (
-	// Clock/reset/start
+	// Clock/reset/start/stall
 	input wire	RSTn,		// Reset 
 	input wire 	CLK,		// Clock
 	input wire 	START, 		// Start (ignored while working)
+	input wire	STALL,		// Stall
 
 	// Matrix config
 	input wire [MAX_M_SIZE_LOG2-1:0] 	M_SIZE,	// Mat A: M x K
@@ -44,7 +45,6 @@ module CONTROL #(
 	output wire 	FLUSH,
 
 	// Processing control signals
-	output wire 	STALL,
 	output wire 	FINISHED
 );
 
