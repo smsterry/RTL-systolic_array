@@ -6,18 +6,23 @@ module PE #(
 ) 
 (
 	// Control inputs
-	input 	wire	RSTn,		// Reset 
-	input	wire 	CLK,		// Clock
-	input	wire 	ROWE,		// Row-enable
-	input	wire 	COLE,		// Col-enable
-	input 	wire 	COMPUTE,	// Computing is assigned
-	input	wire 	FLUSH,		// Flushing is assigned
+	input wire	RSTn,		// Reset 
+	input wire 	CLK,		// Clock
+	input wire 	COMPUTE,	// Computing is assigned
+	input wire 	FLUSH,		// Flushing is assigned
+
+	input wire	OPND1_is_valid_in,	// if 1st input operand is valid or not
+	input wire	OPND1_is_valid_in,	// if 2nd input operand is valid or not
 
 	// Data inputs
 	input signed wire	[OPND_BWIDTH-1:0]	OPND1_in,	// 1st operand from another PE
 	input signed wire	[OPND_BWIDTH-1:0]	OPND2_in,	// 2nd operand from another PE
 	input signed wire 	[ACC_BWIDTH-1:0]	ACC_in		// Accumulated partial sum (for flushing)
 	
+	// Control outputs
+	output wire	OPND1_is_valid_out,		// if 1st output operand is valid or not
+	output wire	OPND2_is_valid_out,		// if 2nd output operand is valid or not
+
 	// Data outputs
 	output signed wire	[OPND_BWIDTH-1:0]	OPND1_out,	// 1st operand to another PE
 	output signed wire	[OPND_BWIDTH-1:0]	OPND2_out, 	// 2nd operand to another PE
@@ -28,6 +33,10 @@ module PE #(
 reg signed [OPND_BWIDTH-1:0] 	opnd1_buf;
 reg signed [OPND_BWIDTH-1:0] 	opnd2_buf;
 reg signed [ACC_BWIDTH-1:0]		acc_buf;
+
+// Buffer for checking if each operand is valid or not
+reg signed 	opnd1_is_valid;
+reg signed 	opnd2_is_valid;
 
 // Temporal values for computing MAC
 wire signed [ACC_BWIDTH-1:0] 	curr_acc;
@@ -40,6 +49,8 @@ assign product 	= opnd1_buf * opnd2_buf
 assign acc_nxt 	= curr_acc + product;
 
 // Combinational output logic: output wires that will be used by other PEs
+assign OPND1_is_valid_out 	= opnd1_is_valid;
+assign OPND2_is_valid_out 	= opnd2_is_valid;
 assign OPND1_out 	= opnd1_buf;
 assign OPND2_out	= opnd2_buf;
 assign ACC_out		= acc_buf;
@@ -48,17 +59,21 @@ assign ACC_out		= acc_buf;
 always @ (posedge CLK, negedge RSTn) begin
 	// Reset all buffers
 	if (~RSTn) begin
-		opnd1_buf 	<= 0;
-		opnd2_buf 	<= 0;
-		acc_buf 	<= 0;
+		opnd1_is_valid 	<= 0;
+		opnd2_is_valid 	<= 0;
+		opnd1_buf 		<= 0;
+		opnd2_buf 		<= 0;
+		acc_buf 		<= 0;
 	end
 	else begin
 		// Compute if corresponding control signals are asserted
-		if (ROWE & COLE) begin
+		if (opnd1_is_valid & opnd2_is_valid) begin
 			if (COMPUTE & ~FLUSH) begin
-				opnd1_buf 	<= OPND1_in;
-				opnd2_buf 	<= OPND2_in;
-				acc_buf 	<= acc_nxt;
+				opnd1_is_valid 	<= OPND1_is_valid_in;
+				opnd2_is_valid 	<= OPND2_is_valid_in;
+				opnd1_buf 		<= OPND1_in;
+				opnd2_buf 		<= OPND2_in;
+				acc_buf 		<= acc_nxt;
 			end
 			if (FLUSH & ~COMPUTE) begin
 				acc_buf 	<= ACC_in;
