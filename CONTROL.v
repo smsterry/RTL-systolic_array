@@ -35,12 +35,10 @@ module CONTROL #(
 	// FIFO control outputs
 	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND1_FIFO_PUSHEs_out,
 	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND1_FIFO_POPEs_out,
-	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND2_FIFO_PUSHEs_out,
-	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND2_FIFO_POPEs_out,
+	output wire [PE_ARRAY_NUM_COLS-1:0] OPND2_FIFO_PUSHEs_out,
+	output wire [PE_ARRAY_NUM_COLS-1:0] OPND2_FIFO_POPEs_out,
 
 	// PE array control outputs
-	output wire [PE_ARRAY_NUM_ROWS-1:0]	PE_ROW_VALID_out,
-	output wire [PE_ARRAY_NUM_COLS-1:0]	PE_COL_VALID_out,
 	output wire 	IS_COMPUTING_out,
 	output wire 	IS_FLUSHING_out,
 
@@ -81,6 +79,12 @@ reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr;
 reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride;
 reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride;
 reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_stride;
+
+// FIFO control registers
+reg [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_push_enables;
+reg [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_pop_enables;
+reg [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_push_enables;
+reg [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_pop_enables;
 
 
 
@@ -245,9 +249,54 @@ wire [OPND1_SRAM_AWIDTH-1:0] 	opnd2_sram_addr_nxt_while_compute;
 wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt_from_compute;
 wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt_while_flush;
 
+assign opnd1_sram_addr_nxt_from_flush = curr_tile_row_id_nxt;
+assign opnd1_sram_addr_nxt_while_compute = opnd1_sram_addr + opnd1_sram_addr_stride;
+assign opnd1_sram_addr_nxt =
+	(is_idle)? 0 :
+	(is_flushing)? opnd1_sram_addr_nxt_from_flush : opnd1_sram_addr_nxt_while_compute;
+assign opnd2_sram_addr_nxt_from_flush = curr_tile_col_id_nxt;
+assign opnd2_sram_addr_nxt_while_compute = opnd2_sram_addr + opnd2_sram_addr_stride;
+assign opnd2_sram_addr_nxt = 
+	(is_idle)? 0 :
+	(is_flushing)? opnd2_sram_addr_nxt_from_flush : opnd2_sram_addr_nxt_while_compute;
 
+/**
+ *	[opnd1_fifo_push_enables_nxt, opnd1_fifo_pop_enables_nxt,
+ *	 opnd2_fifo_push_enables_nxt, opnd2_fifo_pop_enables_nxt]
+ *	
+ * 	Push/pop enable signals determine if any entry is allowed to be pushed
+ * 	into or popped from each FIFO. Note that these signals are determined
+ *	by the matrix, architectural configuration and the current compute 
+ *	count. Also, note that these control signals are pushed into the 
+ *	register at: compute -> compute.
+ */
+wire [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_push_enables_nxt;
+wire [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_pop_enables_nxt;
+wire [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_push_enables_nxt;
+wire [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_pop_enables_nxt;
 
-
+genvar opnd1_fifo_id;
+generate 
+	for (opnd1_fifo_id = 0; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id++)
+	begin
+		assign opnd1_fifo_push_enables_nxt[opnd1_fifo_id] =
+			(compute_count >= k_size)? 0 : 1;
+		assign opnd1_fifo_pop_enables_nxt[opnd1_fifo_id] = 
+			(opnd1_fifo_id > compute_count)? 0 :
+			(compute_count > (k_size - 1 + opnd1_fifo_id))? 0 : 1;
+	end
+endgenerate
+genvar opnd2_fifo_id;
+generate 
+	for (opnd2_fifo_id = 0; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id++)
+	begin
+		assign opnd2_fifo_push_enables_nxt[opnd2_fifo_id] =
+			(compute_count >= k_size)? 0 : 1;
+		assign opnd2_fifo_pop_enables_nxt[opnd2_fifo_id] = 
+			(opnd2_fifo_id > compute_count)? 0 :
+			(compute_count > (k_size - 1 + opnd2_fifo_id))? 0 : 1;
+	end
+endgenerate
 
 /**
  *	[compute_to_flush]
