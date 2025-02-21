@@ -48,6 +48,9 @@ module CONTROL #(
 	output wire 	IS_FINISHED_out
 );
 
+
+
+
 /* Register statement */
 // State registers
 reg 	is_idle;
@@ -71,18 +74,28 @@ reg [PE_ARRAY_NUM_COLS_LOG2-1:0] 	curr_num_actv_col_ids;
 reg [MAX_K_SIZE_LOG2:0]				compute_count;
 reg [MAX_K_SIZE_LOG2:0]				flush_count;
 
-/* Temporal wire statement & assignment for the next value */
+// Memory address registers
+reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr;
+reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr;
+reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr;
+reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride;
+reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride;
+reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_stride;
 
+
+
+
+/* Temporal wire statement & assignment for the next value */
 /**
  *	[num_tile_row_ids_nxt, num_tile_col_ids_nxt]
  *	
  *	The number of tiles per each column, row.
  *	Note that these values are determined by M, N, and PE array sizes.
- * 	Also, note that these values are set only for: idle -> compute
+ * 	Also, note that these values are set only at: idle -> compute
  * 	e.g.) 
- *	For 32 x 32 PE array, M = 128, and N = 96:
+ *	For 32 x 32 PE array, M = 128, and N = 48:
  * 		- num_tile_row_ids_nxt = ceil(128 / 32) = 4
- *		- num_tile_col_ids_nxt = ceil(96 / 32) = 3
+ *		- num_tile_col_ids_nxt = ceil(48 / 32) = 2
  */
 wire [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0] num_tile_row_ids_nxt;
 wire [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	num_tile_col_ids_nxt;
@@ -102,6 +115,136 @@ assign num_tile_row_ids_nxt
 assign num_tile_col_ids_nxt	
 	= (N_SIZE_in[PE_ARRAY_NUM_COLS_LOG2-1:0] == 0)? 
 	n_divisible_by_num_cols : n_not_divisible_by_num_cols;
+
+/**
+ *	[curr_tile_row_id_nxt, curr_tile_col_id_nxt]
+ *	
+ *	The row id and column id of the next tile. Note that these values 
+ * 	are pushed into the registers only at: idle/flush -> compute
+ */
+wire [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]	curr_tile_row_id_nxt;
+wire [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	curr_tile_col_id_nxt;
+
+wire [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]	curr_tile_row_id_nxt_from_flush;
+wire [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	curr_tile_col_id_nxt_from_flush;
+wire col_id_end_flag;
+
+assign col_id_end_flag = (curr_tile_col_id + 1 == num_tile_col_ids)? 1 : 0;
+assign curr_tile_col_id_nxt_from_flush 
+	= (col_id_end_flag)? 0 : curr_tile_col_id + 1;
+assign curr_tile_row_id_nxt_from_flush
+	= (col_id_end_flag)? curr_tile_row_id + 1 : curr_tile_row_id;
+assign curr_tile_row_id_nxt 
+	= (is_idle)? 0 : curr_tile_row_id_nxt_from_flush;
+assign curr_tile_col_id_nxt
+	= (is_idle)? 0 : curr_tile_col_id_nxt_from_flush;
+
+/**
+ *	[curr_num_actv_row_ids_nxt, curr_num_actv_col_ids_nxt]
+ *	
+ *	The number of rows/columns that are activated in the current tile.
+ *	Note that these values are determined by M, N, and PE array sizes,
+ * 	and the current tile's row/col id. Also, note that these values are 
+ *	set only at: idle/flush -> compute
+ * 	e.g.) 
+ *	For 32 x 32 PE array, M = 128, and N = 48, 
+ * 	curr tile's row id = 1, curr tile's col id = 0:
+ * 		- curr_num_actv_row_ids_nxt = 32 (note: nxt row id = 2)
+ *		- curr_num_actv_col_ids_nxt = 16 (note: nxt col id = 1)
+ */
+wire [PE_ARRAY_NUM_ROWS_LOG2-1:0] 	curr_num_actv_row_ids_nxt;
+wire [PE_ARRAY_NUM_COLS_LOG2-1:0]	curr_num_actv_col_ids_nxt;
+
+wire [PE_ARRAY_NUM_ROWS_LOG2:0]		curr_num_actv_row_ids_nxt_from_idle;
+wire [PE_ARRAY_NUM_COLS_LOG2:0]		curr_num_actv_col_ids_nxt_from_idle;
+wire [PE_ARRAY_NUM_ROWS_LOG2:0] 	curr_num_actv_row_ids_nxt_from_flush;
+wire [PE_ARRAY_NUM_COLS_LOG2:0]		curr_num_actv_col_ids_nxt_from_flush;
+wire [MAX_M_SIZE_LOG2-1:0]	num_rows_covered;
+wire [MAX_N_SIZE_LOG2-1:0] 	num_cols_covered;
+
+assign curr_num_actv_row_ids_nxt_from_idle
+	= (M_SIZE_in >= PE_ARRAY_NUM_ROWS)? PE_ARRAY_NUM_ROWS : M_SIZE_in;
+assign curr_num_actv_col_ids_nxt_from_idle
+	= (N_SIZE_in >= PE_ARRAY_NUM_COLS)? PE_ARRAY_NUM_COLS : N_SIZE_in;
+assign num_rows_covered = curr_tile_row_id_nxt << PE_ARRAY_NUM_ROWS_LOG2;
+assign num_cols_covered = curr_tile_col_id_nxt << PE_ARRAY_NUM_COLS_LOG2;
+assign curr_num_actv_row_ids_nxt_from_flush
+	= (m_size - num_rows_covered >= PE_ARRAY_NUM_ROWS)?
+		PE_ARRAY_NUM_ROWS : (m_size - num_rows_covered);
+assign curr_num_actv_col_ids_nxt_from_flush
+	= (n_size - num_cols_covered >= PE_ARRAY_NUM_COLS)?
+		PE_ARRAY_NUM_COLS : (n_size - num_cols_covered);
+assign curr_num_actv_row_ids_nxt 
+	= (is_idle)? 
+		curr_num_actv_row_ids_nxt_from_idle : 
+		curr_num_actv_row_ids_nxt_from_flush;
+assign curr_num_actv_col_ids_nxt
+	= (is_idle)?
+		curr_num_actv_col_ids_nxt_from_idle :
+		curr_num_actv_col_ids_nxt_from_flush;
+
+/**
+ *	[opnd1_sram_addr_stride_nxt, opnd2_sram_addr_stride_nxt, 
+ *	 out_sram_addr_stride_nxt]
+ *	
+ *	These values represent the stride between two neighbor target row 
+ *	addresses. Note that these values can be determined by matrix and
+ *	architectural configuration. Therefore, these values are pushed 
+ * 	into the corresponding registers only at: idle -> compute.
+ *	Also, note that opnd1 matrix entries are stored in SRAM with the 
+ *	column-major layout while opnd2 and the output matrix entries are
+ * 	stored using row-major layout.
+ */
+wire [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride_nxt;
+wire [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride_nxt;
+wire [OUT_SRAM_AWIDTH-1:0]		out_sram_addr_stride_nxt;
+
+wire [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride_nxt_divisible;
+wire [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride_nxt_divisible;
+wire [OUT_SRAM_AWIDTH-1:0]		out_sram_addr_stride_nxt_divisible;
+wire [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride_nxt_not_divisible;
+wire [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride_nxt_not_divisible;
+wire [OUT_SRAM_AWIDTH-1:0]		out_sram_addr_stride_nxt_not_divisible;
+
+assign opnd1_sram_addr_stride_nxt_divisible 
+	= M_SIZE_in >> PE_ARRAY_NUM_ROWS_LOG2;
+assign opnd2_sram_addr_stride_nxt_divisible 
+	= N_SIZE_in >> PE_ARRAY_NUM_COLS_LOG2;
+assign opnd1_sram_addr_stride_nxt_not_divisible
+	= opnd1_sram_addr_stride_nxt_divisible + 1;
+assign opnd2_sram_addr_stride_nxt_not_divisible
+	= opnd2_sram_addr_stride_nxt_divisible + 1;
+assign opnd1_sram_addr_stride_nxt
+	= (M_SIZE_in[PE_ARRAY_NUM_ROWS_LOG2-1:0] == 0)?
+		opnd1_sram_addr_stride_nxt_divisible:
+		opnd1_sram_addr_stride_nxt_not_divisible;
+assign opnd2_sram_addr_stride_nxt
+	= (N_SIZE_in[PE_ARRAY_NUM_COLS_LOG2-1:0] == 0)?
+		opnd2_sram_addr_stride_nxt_divisible:
+		opnd2_sram_addr_stride_nxt_not_divisible;
+assign out_sram_addr_stride_nxt 
+	= opnd2_sram_addr_stride_nxt;
+
+/**
+ *	[opnd1_sram_addr_nxt, opnd2_sram_addr_nxt, out_sram_addr_nxt]
+ *	
+ *	These values represent the next read/write target row address. Note
+ * 	that the opnd1/2_sram_addr_nxt values are pushed into the corresponding 
+ * 	registers at: idle/flush -> compute and compute -> compute.
+ * 	Also, note that the out_sram_addr_nxt is pushed into the register at:
+ *	compute -> flush and flush -> flush.
+ */
+wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt;
+wire [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_nxt;
+wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt;
+
+wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt_from_flush;
+wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt_while_compute;
+wire [OPND1_SRAM_AWIDTH-1:0] 	opnd2_sram_addr_nxt_from_flush;
+wire [OPND1_SRAM_AWIDTH-1:0] 	opnd2_sram_addr_nxt_while_compute;
+wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt_from_compute;
+wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt_while_flush;
+
 
 
 
@@ -141,6 +284,8 @@ assign flush_to_compute = (all_row_flushed & ~all_tile_flushed);
 assign is_finished		= (all_row_flushed & all_tile_flushed);
 
 
+
+
 // Sequential logic: update state
 always @ (posedge CLK, negedge RSTn) begin
 	
@@ -149,7 +294,29 @@ always @ (posedge CLK, negedge RSTn) begin
 	end
 	else begin
 		// Start to compute. Set all signals that are required to compute
-		if (~is_computing & ~is_flushing & START) begin
+		if (is_idle) 
+		begin
+			if (START) 
+			begin
+				is_idle			<= 0;
+				is_computing 	<= 1;
+				is_flushing 	<= 0;
+
+				m_size 	<= M_SIZE_in;
+				k_size	<= K_SIZE_in;
+				n_size 	<= N_SIZE_in;
+
+				num_tile_row_ids	<= num_tile_row_ids_nxt;
+				num_tile_col_ids	<= num_tile_col_ids_nxt;
+			end
+		end
+		else if (is_computing) 
+		begin
+
+		end
+		else if (is_flushing) 
+		begin
+
 		end
 	end
 end
