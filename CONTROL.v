@@ -8,9 +8,9 @@ module CONTROL #(
 	parameter 	OUT_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
 	parameter 	OUT_SRAM_BWIDTH 		= 32*32,	// Bits per row in the SRAM
 	parameter	PE_ARRAY_NUM_ROWS		= 32,		// # of rows in the PE array
-	parameter	PE_ARRAY_NUM_ROWS_LOG2	= 5,		// log_2(32) == 5
+	parameter	PE_ARRAY_NUM_ROWS_LOG2  = 5,		// log_2(32) == 5
 	parameter	PE_ARRAY_NUM_COLS		= 32		// # of cols in the PE array
-	parameter	PE_ARRAY_NUM_COLS_LOG2	= 5,		// log_2(32) == 5
+	parameter	PE_ARRAY_NUM_COLS_LOG2  = 5,		// log_2(32) == 5
 	parameter	MAX_M_SIZE_LOG2			= 9, 		// # row entries of the first operand matrix == 511
 	parameter	MAX_K_SIZE_LOG2			= 9, 		// # col entries of the first operand matrix == 511
 	parameter	MAX_N_SIZE_LOG2			= 9 		// # col entries of the second operand matrix == 511
@@ -30,11 +30,11 @@ module CONTROL #(
 	// SRAM control outputs
 	output wire [OPND1_SRAM_AWIDTH-1:0] OPND1_SRAM_ADDR_out,
 	output wire [OPND2_SRAM_AWIDTH-1:0] OPND2_SRAM_ADDR_out,
-	output wire [OUT_SRAM_AWIDTH-1:0] 	OUT_SRAM_ADDR_out,
+	output wire [OUT_SRAM_AWIDTH-1:0]   OUT_SRAM_ADDR_out,
 	output wire	OPND1_SRAM_WEn_out,
 	output wire OPND2_SRAM_WEn_out,
 	output wire OUT_SRAM_WEn_out,
-	output wire [OUT_SRAM_BWIDTH-1:0] 	OUT_SRAM_BE_out,
+	output wire [OUT_SRAM_BWIDTH-1:0]   OUT_SRAM_BE_out,
 	
 	// FIFO control outputs
 	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND1_FIFO_PUSHEs_out,
@@ -63,27 +63,27 @@ reg 	is_flushing;
 reg [MAX_M_SIZE_LOG2-1:0] m_size;
 reg [MAX_K_SIZE_LOG2-1:0] k_size;
 reg [MAX_N_SIZE_LOG2-1:0] n_size;
-reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]	num_tile_row_ids;
-reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	num_tile_col_ids;
+reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]  num_tile_row_ids;
+reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]  num_tile_col_ids;
 
 // Tile id registers
-reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]	curr_tile_row_id;
-reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]	curr_tile_col_id;
+reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]  curr_tile_row_id;
+reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]  curr_tile_col_id;
 
 // Intra-tile logic registers
 reg [PE_ARRAY_NUM_ROWS_LOG2-1:0]	curr_num_actv_row_ids;
-reg [PE_ARRAY_NUM_COLS_LOG2-1:0] 	curr_num_actv_col_ids;
+reg [PE_ARRAY_NUM_COLS_LOG2-1:0]	curr_num_actv_col_ids;
 reg [MAX_K_SIZE_LOG2:0]				compute_count;
 reg [MAX_K_SIZE_LOG2:0]				flush_count;
 
 // Memory address registers
 reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr;
 reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr;
-reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr;
-reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_offset;
+reg [OUT_SRAM_AWIDTH-1:0]   out_sram_addr;
+reg [OUT_SRAM_AWIDTH-1:0]   out_sram_addr_offset;
 reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride;
 reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride;
-reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_stride;
+reg [OUT_SRAM_AWIDTH-1:0]   out_sram_addr_stride;
 
 // FIFO control registers
 reg [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_push_enables;
