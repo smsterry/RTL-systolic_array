@@ -31,6 +31,10 @@ module CONTROL #(
 	output wire [OPND1_SRAM_AWIDTH-1:0] OPND1_SRAM_ADDR_out,
 	output wire [OPND2_SRAM_AWIDTH-1:0] OPND2_SRAM_ADDR_out,
 	output wire [OUT_SRAM_AWIDTH-1:0] 	OUT_SRAM_ADDR_out,
+	output wire	OPND1_SRAM_WEn_out,
+	output wire OPND2_SRAM_WEn_out,
+	output wire OUT_SRAM_WEn_out,
+	output wire [OUT_SRAM_BWIDTH-1:0] 	OUT_SRAM_BE_out,
 	
 	// FIFO control outputs
 	output wire [PE_ARRAY_NUM_ROWS-1:0] OPND1_FIFO_PUSHEs_out,
@@ -76,6 +80,7 @@ reg [MAX_K_SIZE_LOG2:0]				flush_count;
 reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr;
 reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr;
 reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr;
+reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_offset;
 reg [OPND1_SRAM_AWIDTH-1:0]	opnd1_sram_addr_stride;
 reg [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_stride;
 reg [OUT_SRAM_AWIDTH-1:0]	out_sram_addr_stride;
@@ -237,10 +242,19 @@ assign out_sram_addr_stride_nxt
  * 	registers at: idle/flush -> compute and compute -> compute.
  * 	Also, note that the out_sram_addr_nxt is pushed into the register at:
  *	compute -> flush and flush -> flush.
+ * 	
+ *	[out_sram_addr_offset_nxt]
+ * 	
+ *	This value is for simplifying the computation logic of the target 
+ *	address of the output SRAM. This value is accumulated in the register,
+ *	and represents the address of the first entry in each row tile. Note
+ * 	that this value is pushed into the register at: idle/flush -> compute,
+ * 	especially only when curr_tile_row_id changes.
  */
 wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt;
 wire [OPND2_SRAM_AWIDTH-1:0]	opnd2_sram_addr_nxt;
 wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_nxt;
+wire [OUT_SRAM_AWIDTH-1:0] 		out_sram_addr_offset_nxt;
 
 wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt_from_flush;
 wire [OPND1_SRAM_AWIDTH-1:0] 	opnd1_sram_addr_nxt_while_compute;
@@ -259,6 +273,14 @@ assign opnd2_sram_addr_nxt_while_compute = opnd2_sram_addr + opnd2_sram_addr_str
 assign opnd2_sram_addr_nxt = 
 	(is_idle)? 0 :
 	(is_flushing)? opnd2_sram_addr_nxt_from_flush : opnd2_sram_addr_nxt_while_compute;
+assign out_sram_addr_nxt_from_compute = out_sram_addr_offset + curr_tile_col_id;
+assign out_sram_addr_nxt_while_flush = out_sram_addr + out_sram_addr_stride;
+assign out_sram_addr_nxt = 
+	(is_computing)? out_sram_addr_nxt_from_compute : out_sram_addr_nxt_while_flush;
+assign out_sram_addr_offset_nxt =
+	(is_idle)? 0 :
+	(col_id_end_flag)? out_sram_addr + (num_tile_col_ids << PE_ARRAY_NUM_ROWS_LOG2) :
+	out_sram_addr;
 
 /**
  *	[opnd1_fifo_push_enables_nxt, opnd1_fifo_pop_enables_nxt,
@@ -275,15 +297,18 @@ wire [PE_ARRAY_NUM_ROWS-1:0] opnd1_fifo_pop_enables_nxt;
 wire [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_push_enables_nxt;
 wire [PE_ARRAY_NUM_COLS-1:0] opnd2_fifo_pop_enables_nxt;
 
+wire [MAX_K_SIZE_LOG2-1:0] curr_k_size;
+assign curr_k_size = (is_idle)? K_SIZE_in : k_size;
+
 genvar opnd1_fifo_id;
 generate 
 	for (opnd1_fifo_id = 0; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id++)
 	begin
 		assign opnd1_fifo_push_enables_nxt[opnd1_fifo_id] =
-			(compute_count >= k_size)? 0 : 1;
+			(compute_count >= curr_k_size)? 0 : 1;
 		assign opnd1_fifo_pop_enables_nxt[opnd1_fifo_id] = 
 			(opnd1_fifo_id > compute_count)? 0 :
-			(compute_count > (k_size - 1 + opnd1_fifo_id))? 0 : 1;
+			(compute_count > (curr_k_size - 1 + opnd1_fifo_id))? 0 : 1;
 	end
 endgenerate
 genvar opnd2_fifo_id;
@@ -291,10 +316,10 @@ generate
 	for (opnd2_fifo_id = 0; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id++)
 	begin
 		assign opnd2_fifo_push_enables_nxt[opnd2_fifo_id] =
-			(compute_count >= k_size)? 0 : 1;
+			(compute_count >= curr_k_size)? 0 : 1;
 		assign opnd2_fifo_pop_enables_nxt[opnd2_fifo_id] = 
 			(opnd2_fifo_id > compute_count)? 0 :
-			(compute_count > (k_size - 1 + opnd2_fifo_id))? 0 : 1;
+			(compute_count > (curr_k_size - 1 + opnd2_fifo_id))? 0 : 1;
 	end
 endgenerate
 
@@ -361,9 +386,11 @@ always @ (negedge RSTn) begin
 		opnd1_sram_addr <= 0;
 		opnd2_sram_addr <= 0;
 		out_sram_addr 	<= 0;
+		out_sram_addr_offset	<= 0;
 		opnd1_sram_addr_stride 	<= 0;
 		opnd2_sram_addr_stride 	<= 0;
 		out_sram_addr_stride 	<= 0;
+
 		opnd1_fifo_push_enables <= 0;
 		opnd1_fifo_pop_enables 	<= 0;
 		opnd2_fifo_push_enables <= 0;
@@ -374,35 +401,40 @@ end
 // Sequential logic: at the idle state
 always @ (posedge CLK) begin
 	if (RSTn & ~STALL) begin
-		if (is_idle & START) begin
-			is_idle			<= 0;
-			is_computing 	<= 1;
-			is_flushing 	<= 0;
+		if (is_idle) begin
+			if (START) begin
+				is_idle			<= 0;
+				is_computing 	<= 1;
+				is_flushing 	<= 0;
 
-			m_size			<= M_SIZE_in;
-			k_size			<= K_SIZE_in;
-			n_size			<= N_SIZE_in;
+				m_size			<= M_SIZE_in;
+				k_size			<= K_SIZE_in;
+				n_size			<= N_SIZE_in;
 
-			num_tile_row_ids 	<= num_tile_row_ids_nxt;
-			num_tile_col_ids 	<= num_tile_col_ids_nxt;
-			
-			curr_tile_row_id	<= curr_tile_row_id_nxt;
-			curr_tile_col_id	<= curr_tile_row_id_nxt;
-			curr_num_actv_row_ids 	<= curr_num_actv_row_ids_nxt;
-			curr_num_actv_col_ids 	<= curr_num_actv_col_ids_nxt;
-			compute_count 	<= 0;
-			flush_count 	<= 0;
+				num_tile_row_ids 	<= num_tile_row_ids_nxt;
+				num_tile_col_ids 	<= num_tile_col_ids_nxt;
+				
+				curr_tile_row_id	<= curr_tile_row_id_nxt;
+				curr_tile_col_id	<= curr_tile_row_id_nxt;
+				curr_num_actv_row_ids 	<= curr_num_actv_row_ids_nxt;
+				curr_num_actv_col_ids 	<= curr_num_actv_col_ids_nxt;
 
-			opnd1_sram_addr <= opnd1_sram_addr_nxt;
-			opnd2_sram_addr <= opnd2_sram_addr_nxt;
-			out_sram_addr 	<= out_sram_addr_nxt;
-			opnd1_sram_addr_stride 	<= opnd1_sram_addr_stride_nxt;
-			opnd2_sram_addr_stride 	<= opnd2_sram_addr_stride_nxt;
-			out_sram_addr_stride 	<= out_sram_addr_stride_nxt;
-			opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
-			opnd1_fifo_pop_enables 	<= opnd1_fifo_pop_enables_nxt;
-			opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
-			opnd1_fifo_pop_enables 	<= opnd2_fifo_pop_enables_nxt;
+				opnd1_sram_addr <= opnd1_sram_addr_nxt;
+				opnd2_sram_addr <= opnd2_sram_addr_nxt;
+				out_sram_addr_offset	<= out_sram_addr_offset_nxt;
+				opnd1_sram_addr_stride 	<= opnd1_sram_addr_stride_nxt;
+				opnd2_sram_addr_stride 	<= opnd2_sram_addr_stride_nxt;
+				out_sram_addr_stride 	<= out_sram_addr_stride_nxt;
+
+				opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
+				opnd1_fifo_pop_enables 	<= opnd1_fifo_pop_enables_nxt;
+				opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
+				opnd1_fifo_pop_enables 	<= opnd2_fifo_pop_enables_nxt;
+			end
+			else begin
+				compute_count 	<= 0;
+				flush_count 	<= 0;
+			end
 		end
 	end
 end
@@ -417,7 +449,6 @@ always @ (posedge CLK) begin
 				is_flushing 	<= 1;
 
 				compute_count 	<= 0;
-				flush_count 	<= 0;
 
 				out_sram_addr 	<= out_sram_addr_nxt;
 				
@@ -440,6 +471,106 @@ always @ (posedge CLK) begin
 		end
 	end
 end
+
+// Sequential logic: at the flush state
+always @ (posedge CLK) begin
+	if (RSTn & ~STALL) begin
+		if (is_finished) begin
+			is_idle			<= 1;
+			is_computing 	<= 0;
+			is_flushing 	<= 0;
+
+			m_size			<= 0;
+			k_size			<= 0;
+			n_size			<= 0;
+
+			num_tile_row_ids 	<= 0;
+			num_tile_col_ids 	<= 0;
+			
+			curr_tile_row_id	<= 0;
+			curr_tile_col_id	<= 0;
+			curr_num_actv_row_ids 	<= 0;
+			curr_num_actv_col_ids 	<= 0;
+			compute_count 	<= 0;
+			flush_count 	<= 0;
+
+			opnd1_sram_addr <= 0;
+			opnd2_sram_addr <= 0;
+			out_sram_addr 	<= 0;
+			out_sram_addr_offset	<= 0;
+			opnd1_sram_addr_stride 	<= 0;
+			opnd2_sram_addr_stride 	<= 0;
+			out_sram_addr_stride 	<= 0;
+
+			opnd1_fifo_push_enables <= 0;
+			opnd1_fifo_pop_enables 	<= 0;
+			opnd2_fifo_push_enables <= 0;
+			opnd2_fifo_pop_enables 	<= 0;
+		end
+		else if (flush_to_compute) begin
+			is_idle			<= 0;
+			is_computing 	<= 1;
+			is_flushing 	<= 0;
+			
+			curr_tile_row_id	<= curr_tile_row_id_nxt;
+			curr_tile_col_id	<= curr_tile_col_id_nxt;
+			curr_num_actv_row_ids 	<= curr_num_actv_row_ids_nxt;
+			curr_num_actv_col_ids 	<= curr_num_actv_col_ids_nxt;
+
+			flush_count 	<= 0;
+
+			opnd1_sram_addr <= opnd1_sram_addr_nxt;
+			opnd2_sram_addr <= opnd2_sram_addr_nxt;
+			out_sram_addr_offset	<= out_sram_addr_offset_nxt;
+
+			opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
+			opnd1_fifo_pop_enables 	<= opnd1_fifo_pop_enables_nxt;
+			opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
+			opnd2_fifo_pop_enables 	<= opnd2_fifo_pop_enables_nxt;
+		end
+		else begin
+			flush_count 	<= flush_count + 1;
+
+			out_sram_addr 	<= out_sram_addr_nxt;
+		end
+	end
+end
+
+
+
+
+/* Output port assignments */
+
+// SRAM control outputs
+assign OPND1_SRAM_ADDR_out 	= opnd1_sram_addr;
+assign OPND2_SRAM_ADDR_out	= opnd2_sram_addr;
+assign OUT_SRAM_ADDR_out	= out_sram_addr;
+assign OPND1_SRAM_WEn_out	= 1;
+assign OPND2_SRAM_WEn_out	= 1;
+assign OUT_SRAM_WEn_out		= 
+	(is_flushing && 
+	(flush_count + curr_num_actv_row_ids >= PE_ARRAY_NUM_ROWS))? 0 : 1;
+
+genvar bit_id;
+generate
+	for (bit_id = 0; bit_id < OUT_SRAM_BWIDTH; bit_id++) begin
+		assign OUT_SRAM_BE_out[bit_id] =
+			((bit_id >> 5) < curr_num_actv_col_ids)? 1 : 0;
+	end
+endgenerate
+	
+// FIFO control outputs
+assign OPND1_FIFO_PUSHEs_out	= opnd1_fifo_push_enables;
+assign OPND1_FIFO_POPEs_out		= opnd1_fifo_pop_enables;
+assign OPND2_FIFO_PUSHEs_out	= opnd2_fifo_push_enables;
+assign OPND2_FIFO_POPEs_out		= opnd2_fifo_pop_enables;
+
+// PE array control outputs
+assign IS_COMPUTING_out	= is_computing;
+assign IS_FLUSHING_out	= is_flushing;
+
+// Processing control signals
+assign IS_FINISHED_out	= is_finished;
 
 endmodule
 //----------------------------------------------------------------------//
