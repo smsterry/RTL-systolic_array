@@ -335,37 +335,108 @@ assign is_finished		= (all_row_flushed & all_tile_flushed);
 
 
 
-// Sequential logic: update state
-always @ (posedge CLK, negedge RSTn) begin
-	
+/* Sequential logic */
+
+// Asynchronous reset
+always @ (negedge RSTn) begin	
 	if (~RSTn) begin
+		is_idle			<= 1;
+		is_computing 	<= 0;
+		is_flushing 	<= 0;
+
+		m_size			<= 0;
+		k_size			<= 0;
+		n_size			<= 0;
+
+		num_tile_row_ids 	<= 0;
+		num_tile_col_ids 	<= 0;
 		
+		curr_tile_row_id	<= 0;
+		curr_tile_col_id	<= 0;
+		curr_num_actv_row_ids 	<= 0;
+		curr_num_actv_col_ids 	<= 0;
+		compute_count 	<= 0;
+		flush_count 	<= 0;
+
+		opnd1_sram_addr <= 0;
+		opnd2_sram_addr <= 0;
+		out_sram_addr 	<= 0;
+		opnd1_sram_addr_stride 	<= 0;
+		opnd2_sram_addr_stride 	<= 0;
+		out_sram_addr_stride 	<= 0;
+		opnd1_fifo_push_enables <= 0;
+		opnd1_fifo_pop_enables 	<= 0;
+		opnd2_fifo_push_enables <= 0;
+		opnd2_fifo_pop_enables 	<= 0;
 	end
-	else begin
-		// Start to compute. Set all signals that are required to compute
-		if (is_idle) 
-		begin
-			if (START) 
-			begin
+end
+
+// Sequential logic: at the idle state
+always @ (posedge CLK) begin
+	if (RSTn & ~STALL) begin
+		if (is_idle & START) begin
+			is_idle			<= 0;
+			is_computing 	<= 1;
+			is_flushing 	<= 0;
+
+			m_size			<= M_SIZE_in;
+			k_size			<= K_SIZE_in;
+			n_size			<= N_SIZE_in;
+
+			num_tile_row_ids 	<= num_tile_row_ids_nxt;
+			num_tile_col_ids 	<= num_tile_col_ids_nxt;
+			
+			curr_tile_row_id	<= curr_tile_row_id_nxt;
+			curr_tile_col_id	<= curr_tile_row_id_nxt;
+			curr_num_actv_row_ids 	<= curr_num_actv_row_ids_nxt;
+			curr_num_actv_col_ids 	<= curr_num_actv_col_ids_nxt;
+			compute_count 	<= 0;
+			flush_count 	<= 0;
+
+			opnd1_sram_addr <= opnd1_sram_addr_nxt;
+			opnd2_sram_addr <= opnd2_sram_addr_nxt;
+			out_sram_addr 	<= out_sram_addr_nxt;
+			opnd1_sram_addr_stride 	<= opnd1_sram_addr_stride_nxt;
+			opnd2_sram_addr_stride 	<= opnd2_sram_addr_stride_nxt;
+			out_sram_addr_stride 	<= out_sram_addr_stride_nxt;
+			opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
+			opnd1_fifo_pop_enables 	<= opnd1_fifo_pop_enables_nxt;
+			opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
+			opnd1_fifo_pop_enables 	<= opnd2_fifo_pop_enables_nxt;
+		end
+	end
+end
+
+// Sequential logic: at the compute state
+always @ (posedge CLK) begin
+	if (RSTn & ~STALL) begin
+		if (is_computing) begin
+			if (compute_to_flush) begin
 				is_idle			<= 0;
-				is_computing 	<= 1;
-				is_flushing 	<= 0;
+				is_computing 	<= 0;
+				is_flushing 	<= 1;
 
-				m_size 	<= M_SIZE_in;
-				k_size	<= K_SIZE_in;
-				n_size 	<= N_SIZE_in;
+				compute_count 	<= 0;
+				flush_count 	<= 0;
 
-				num_tile_row_ids	<= num_tile_row_ids_nxt;
-				num_tile_col_ids	<= num_tile_col_ids_nxt;
+				out_sram_addr 	<= out_sram_addr_nxt;
+				
+				opnd1_fifo_push_enables <= 0;
+				opnd1_fifo_pop_enables 	<= 0;
+				opnd2_fifo_push_enables <= 0;
+				opnd1_fifo_pop_enables 	<= 0;
 			end
-		end
-		else if (is_computing) 
-		begin
+			else begin
+				compute_count 	<= compute_count + 1;
 
-		end
-		else if (is_flushing) 
-		begin
+				opnd1_sram_addr <= opnd1_sram_addr_nxt;
+				opnd2_sram_addr <= opnd2_sram_addr_nxt;
 
+				opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
+				opnd1_fifo_pop_enables 	<= opnd1_fifo_pop_enables_nxt;
+				opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
+				opnd1_fifo_pop_enables 	<= opnd2_fifo_pop_enables_nxt;
+			end
 		end
 	end
 end
