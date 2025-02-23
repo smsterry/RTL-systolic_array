@@ -1,9 +1,10 @@
 `timescale 1ns/10ps
 module SRAM #(
-	parameter ROMDATA = "", 
-	BWIDTH 		= 256, 	// Bits per row
-	AWIDTH 		= 10, 	// Address width (Row-address)
-	NUM_ROWS 	= 1024) // # rows
+	parameter ROMDATA 		= "", 
+	parameter BWIDTH 		= 256, 	// Bits per row
+	parameter AWIDTH 		= 10, 	// Address width (Row-address)
+	parameter NUM_ROWS 		= 1024	// # rows
+) 
 (
 	input	wire					CLK,
 	input	wire					CSn,	// chip select negative
