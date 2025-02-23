@@ -5,6 +5,7 @@ module CONTROL #(
 	parameter 	OPND1_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
 	parameter 	OPND2_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
 	parameter 	OPND2_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
+	parameter 	ACC_BWIDTH_LOG2			= 5 		// log_2(32) == 5
 	parameter 	OUT_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
 	parameter 	OUT_SRAM_BWIDTH 		= 32*32,	// Bits per row in the SRAM
 	parameter	PE_ARRAY_NUM_ROWS		= 32,		// # of rows in the PE array
@@ -556,7 +557,7 @@ generate
 	for (bit_id = 0; bit_id < OUT_SRAM_BWIDTH; bit_id++) 
 	begin : gen_out_sram_bes
 		assign OUT_SRAM_BE_out[bit_id] =
-			((bit_id >> 5) < curr_num_actv_col_ids)? 1 : 0;
+			((bit_id >> ACC_BWIDTH_LOG2) < curr_num_actv_col_ids)? 1 : 0;
 	end
 endgenerate
 	
