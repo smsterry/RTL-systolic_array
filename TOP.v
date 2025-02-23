@@ -12,7 +12,7 @@ module SYSTOLIC_ARRAY #(
     parameter   FIFO_DEPTH_LOG2         = 5,        // log_2(32) == 5
 	parameter	PE_ARRAY_NUM_ROWS		= 32,		// # of rows in the PE array
 	parameter	PE_ARRAY_NUM_ROWS_LOG2  = 5,		// log_2(32) == 5
-	parameter	PE_ARRAY_NUM_COLS		= 32		// # of cols in the PE array
+	parameter	PE_ARRAY_NUM_COLS		= 32,		// # of cols in the PE array
 	parameter	PE_ARRAY_NUM_COLS_LOG2  = 5,		// log_2(32) == 5
 	parameter	MAX_M_SIZE_LOG2			= 9, 		// # row entries of the first operand matrix == 511
 	parameter	MAX_K_SIZE_LOG2			= 9, 		// # col entries of the first operand matrix == 511
