@@ -54,7 +54,7 @@ generate
                 .CLK            (CLK),
                 .STALL          (STALL),
                 .COMPUTE        (IS_COMPUTING_in),
-                .FLUSH          (IS_COMPUTING_in),
+                .FLUSH          (IS_FLUSHING_in),
 
                 .OPND1_is_valid_in  (opnd1_is_valid[col_id][row_id]),
                 .OPND2_is_valid_in  (opnd2_is_valid[row_id][col_id]),
@@ -75,5 +75,13 @@ generate
 endgenerate
 
 // Input, output ports assignments
+// Inputs
+assign opnd1_data[0] = OPND1_DATA_in;
+assign opnd2_data[0] = OPND2_DATA_in;
+assign opnd1_is_valid[0] = OPND1_IS_VALID_in;
+assign opnd2_is_valid[0] = OPND2_IS_VALID_in;
+
+// Outputs
+assign OUT_DATA_out = out_data[PE_ARRAY_NUM_ROWS];
 
 endmodule
