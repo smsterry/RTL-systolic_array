@@ -8,11 +8,12 @@ module PE #(
 	// Control inputs
 	input wire	RSTn,		// Reset 
 	input wire 	CLK,		// Clock
+	input wire	STALL, 		// Stall
 	input wire 	COMPUTE,	// Computing is assigned
 	input wire 	FLUSH,		// Flushing is assigned
 
 	input wire	OPND1_is_valid_in,	// if 1st input operand is valid or not
-	input wire	OPND1_is_valid_in,	// if 2nd input operand is valid or not
+	input wire	OPND2_is_valid_in,	// if 2nd input operand is valid or not
 
 	// Data inputs
 	input signed wire	[OPND_BWIDTH-1:0]	OPND1_in,	// 1st operand from another PE
@@ -65,7 +66,7 @@ always @ (posedge CLK, negedge RSTn) begin
 		opnd2_buf 		<= 0;
 		acc_buf 		<= 0;
 	end
-	else begin
+	else if (~STALL) begin
 		// Compute if corresponding control signals are asserted
 		if (opnd1_is_valid & opnd2_is_valid) begin
 			if (COMPUTE & ~FLUSH) begin
@@ -76,7 +77,7 @@ always @ (posedge CLK, negedge RSTn) begin
 				acc_buf 		<= acc_nxt;
 			end
 			if (FLUSH & ~COMPUTE) begin
-				acc_buf 	<= ACC_in;
+				acc_buf 		<= ACC_in;
 			end
 		end
 	end
