@@ -303,7 +303,7 @@ assign curr_k_size = (is_idle)? K_SIZE_in : k_size;
 genvar opnd1_fifo_id;
 generate 
 	for (opnd1_fifo_id = 0; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id++)
-	begin
+	begin: gen_fifo1_ctrls_nxt
 		assign opnd1_fifo_push_enables_nxt[opnd1_fifo_id] =
 			(compute_count >= curr_k_size)? 0 : 1;
 		assign opnd1_fifo_pop_enables_nxt[opnd1_fifo_id] = 
@@ -314,7 +314,7 @@ endgenerate
 genvar opnd2_fifo_id;
 generate 
 	for (opnd2_fifo_id = 0; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id++)
-	begin
+	begin: gen_fifo2_ctrls_nxt
 		assign opnd2_fifo_push_enables_nxt[opnd2_fifo_id] =
 			(compute_count >= curr_k_size)? 0 : 1;
 		assign opnd2_fifo_pop_enables_nxt[opnd2_fifo_id] = 
@@ -553,7 +553,8 @@ assign OUT_SRAM_WEn_out		=
 
 genvar bit_id;
 generate
-	for (bit_id = 0; bit_id < OUT_SRAM_BWIDTH; bit_id++) begin
+	for (bit_id = 0; bit_id < OUT_SRAM_BWIDTH; bit_id++) 
+	begin : gen_out_sram_bes
 		assign OUT_SRAM_BE_out[bit_id] =
 			((bit_id >> 5) < curr_num_actv_col_ids)? 1 : 0;
 	end
