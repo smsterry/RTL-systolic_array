@@ -2,6 +2,16 @@
 #include <stdlib.h>
 #include <time.h>
 
+static inline void _print_hex(FILE *fp, int x, int bwidth) {
+    int n = (bwidth + 3) >> 2;
+    int v;
+    for (int i = n - 1; i >= 0; i--) {
+        v = (x >> (i << 2)) & 0xf;
+        if (v == 0) fprintf(fp, "0");
+        else fprintf(fp, "%x", v);
+    }
+}
+
 int main(void) {
 
     srand(time(NULL));
@@ -65,24 +75,24 @@ int main(void) {
     // print matrix A
     for (int r = 0; r < M; r++) {
         for (int c = 0; c < K; c++) {
-            fprintf(fp_mat1, "%x", A_T[r][c]);
-            if (c == num_pe_rows) fprintf(fp_mat1, "\n");
+            _print_hex(fp_mat1, A_T[r][c], bwidth);
+            if (c % num_pe_rows == num_pe_rows-1) fprintf(fp_mat1, "\n");
         }
     }   fprintf(fp_mat1, "\n");
 
     // print matrix B
     for (int r = 0; r < K; r++) {
         for (int c = 0; c < N; c++) {
-            fprintf(fp_mat2, "%x", B[r][c]);
-            if (c == num_pe_cols) fprintf(fp_mat2, "\n");
+            _print_hex(fp_mat2, B[r][c], bwidth);
+            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_mat2, "\n");
         }
     }   fprintf(fp_mat2, "\n");
 
     // print the answer
     for (int r = 0; r < M; r++) {
         for (int c = 0; c < N; c++) {
-            fprintf(fp_ans, "%x", C[r][c]);
-            if (c == num_pe_cols) fprintf(fp_ans, "\n");
+            _print_hex(fp_ans, C[r][c], bwidth<<2);
+            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_ans, "\n");
         }
     }   fprintf(fp_ans, "\n");
 
