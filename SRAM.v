@@ -1,50 +1,53 @@
 `timescale 1ns/10ps
 module SRAM #(
-	parameter ROMDATA 		= "", 
-	parameter BWIDTH 		= 256, 	// Bits per row
-	parameter AWIDTH 		= 10, 	// Address width (Row-address)
-	parameter NUM_ROWS 		= 1024	// # rows
+    parameter ROMDATA 		= "", 
+    parameter WRITEDATA		= "",
+    parameter BWIDTH 		= 256,  // Bits per row
+    parameter AWIDTH 		= 10,   // Address width (Row-address)
+    parameter NUM_ROWS 		= 1024  // # rows
 ) 
 (
-	input	wire					CLK,
-	input	wire					CSn,	// chip select negative
-	input	wire	[AWIDTH-1:0]	ADDR,
-	input	wire					WEn,	// write enable negative
-	input	wire	[BWIDTH-1:0]	BE,		// bit enable
-	input	wire	[BWIDTH-1:0]	D_in, 	// data in
+    input	wire                    CLK,
+    input	wire                    CSn,    // chip select negative
+    input	wire	[AWIDTH-1:0]    ADDR,
+    input	wire                    WEn,    // write enable negative
+    input	wire	[BWIDTH-1:0]    BE,	    // bit enable
+    input	wire	[BWIDTH-1:0]    D_in,   // data in
 
-	output	wire	[BWIDTH-1:0]	D_out 	// data out
+    input 	wire 					IS_FINISHED_in,	// to verify
+
+    output	wire	[BWIDTH-1:0]	D_out   // data out
 );
 
-	reg		[BWIDTH-1:0]		outline;
-	reg		[BWIDTH-1:0]		rows[0 : NUM_ROWS-1];
+reg	[BWIDTH-1:0]    outline;
+reg	[BWIDTH-1:0]    rows[0 : NUM_ROWS-1];
 
-	wire	[BWIDTH-1:0]		data_masked;
-	assign	data_masked = (rows[ADDR] & BE);
-	
+wire [BWIDTH-1:0]   data_masked;
+assign data_masked = (rows[ADDR] & ~BE) | (D_in & BE);
 
-	initial begin
-		if (ROMDATA != "")
-			$readmemh(ROMDATA, ram);
-	end
+initial begin
+	if (ROMDATA != "")
+		$readmemh(ROMDATA, rows);
+end
 
-	assign #1 DOUT = outline;
+assign #1 D_out = outline;
 
-	always @ (posedge CLK) begin
-		// Synchronous write
-		if (~CSN) begin
-			if (~WEN) begin
-				rows[ADDR] <= data_masked;
-			end
-		end
+always @ (posedge CLK) begin
+    // Synchronous read/write
+    if (~CSn) begin
+        if (~WEn) begin
+            rows[ADDR]  <= data_masked;
+        end
+        else begin
+            outline     <= rows[ADDR];
+        end
+    end
 
-	end
-
-	always @ (*) begin
-		// Asynchronous read
-		if (~CSN) begin
-			if (WEN) outline = ram[ADDR];
-		end
-	end
+    // Only in the simulation
+    if (IS_FINISHED_in) begin
+        if (WRITEDATA != "")
+            $writememh(WRITEDATA, rows);
+    end
+end
 
 endmodule
