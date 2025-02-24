@@ -40,6 +40,8 @@ wire [OPND2_SRAM_BWIDTH-1:0]    opnd2_data      [0:PE_ARRAY_NUM_ROWS];
 wire [PE_ARRAY_NUM_COLS-1:0]    opnd2_is_valid  [0:PE_ARRAY_NUM_ROWS];
 wire [OUT_SRAM_BWIDTH-1:0]      out_data        [0:PE_ARRAY_NUM_ROWS];
 
+assign out_data[0] = 0;
+
 genvar row_id, col_id;
 generate
     for (row_id = 0; row_id < PE_ARRAY_NUM_ROWS; row_id = row_id + 1) 

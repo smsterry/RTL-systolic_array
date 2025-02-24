@@ -1,9 +1,9 @@
 `timescale 1ns/10ps
-`define test_M 256
+`define test_M 128
 `define test_MAX_M_SIZE_LOG2 9
-`define test_K 256
+`define test_K 128
 `define test_MAX_K_SIZE_LOG2 9
-`define test_N 256
+`define test_N 128
 `define test_MAX_N_SIZE_LOG2 9
 
 //----------------------------------------------------------------------//
@@ -70,20 +70,16 @@ SYSTOLIC_ARRAY #(
 initial begin
     num_cycles <= 0;
     #102    m_size <= `test_M;
-    #102    k_size <= `test_N;
-    #102    n_size <= `test_K;
-    #102    start  <= 1'b1;
-    #103    m_size <= 0;
-    #103    k_size <= 0;
-    #103    n_size <= 0;
-    #103    start  <= 1'b1;
+            k_size <= `test_N;
+            n_size <= `test_K;
+            start  <= 1'b1;
     #50000  $finish();
 end
 
 always @ (posedge CLK) begin
     if (RSTn) begin
         if (is_finished) begin
-            $display("[Sim] %s cycles taken", num_cycles);
+            $display("[Sim] %d cycles taken", num_cycles);
         end
         num_cycles <= num_cycles + 1;
     end

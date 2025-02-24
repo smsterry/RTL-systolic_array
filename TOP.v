@@ -217,8 +217,8 @@ generate
         ) opnd2_fifo (
             .RSTn       (RSTn),
             .CLK        (CLK),
-            .PUSHE      (opnd1_fifo_pushe[opnd2_fifo_id]),
-            .POPE       (opnd1_fifo_pope[opnd2_fifo_id]),
+            .PUSHE      (opnd2_fifo_pushe[opnd2_fifo_id]),
+            .POPE       (opnd2_fifo_pope[opnd2_fifo_id]),
             
             .D_in       (opnd2_data_sram_to_fifo[((opnd2_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd2_fifo_id << OPND_BWIDTH_LOG2)]),
             

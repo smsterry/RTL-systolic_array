@@ -37,9 +37,9 @@ assign rear_pushed  = rear + 1;
 assign front_popped = front + 1;
 
 // Combinational output logic
-assign IS_EMPTY = (front == rear)? 0 : 1;
-assign IS_FULL  = (front == (rear+1))? 0 : 1;
-assign D_out    = data[rear];
+assign IS_EMPTY = (front == rear)? 1 : 0;
+assign IS_FULL  = (front == (rear+1))? 1 : 0;
+assign D_out    = data[front];
 
 // Sequential logic: push/pop data if the control signals are asserted
 always @ (posedge CLK, negedge RSTn) begin

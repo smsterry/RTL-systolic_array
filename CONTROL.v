@@ -72,10 +72,10 @@ reg [MAX_M_SIZE_LOG2-PE_ARRAY_NUM_ROWS_LOG2:0]  curr_tile_row_id;
 reg [MAX_N_SIZE_LOG2-PE_ARRAY_NUM_COLS_LOG2:0]  curr_tile_col_id;
 
 // Intra-tile logic registers
-reg [PE_ARRAY_NUM_ROWS_LOG2-1:0]    curr_num_actv_row_ids;
-reg [PE_ARRAY_NUM_COLS_LOG2-1:0]    curr_num_actv_col_ids;
-reg [MAX_K_SIZE_LOG2:0]             compute_count;
-reg [MAX_K_SIZE_LOG2:0]             flush_count;
+reg [PE_ARRAY_NUM_ROWS_LOG2:0]    curr_num_actv_row_ids;
+reg [PE_ARRAY_NUM_COLS_LOG2:0]    curr_num_actv_col_ids;
+reg [MAX_K_SIZE_LOG2+1:0]         compute_count;
+reg [MAX_K_SIZE_LOG2+1:0]         flush_count;
 
 // Memory address registers
 reg [OPND1_SRAM_AWIDTH-1:0] opnd1_sram_addr;
@@ -162,15 +162,15 @@ assign curr_tile_col_id_nxt
  *      - curr_num_actv_row_ids_nxt = 32 (note: nxt row id = 2)
  *      - curr_num_actv_col_ids_nxt = 16 (note: nxt col id = 1)
  */
-wire [PE_ARRAY_NUM_ROWS_LOG2-1:0]   curr_num_actv_row_ids_nxt;
-wire [PE_ARRAY_NUM_COLS_LOG2-1:0]   curr_num_actv_col_ids_nxt;
+wire [PE_ARRAY_NUM_ROWS_LOG2:0]   curr_num_actv_row_ids_nxt;
+wire [PE_ARRAY_NUM_COLS_LOG2:0]   curr_num_actv_col_ids_nxt;
 
-wire [PE_ARRAY_NUM_ROWS_LOG2:0] curr_num_actv_row_ids_nxt_from_idle;
-wire [PE_ARRAY_NUM_COLS_LOG2:0] curr_num_actv_col_ids_nxt_from_idle;
-wire [PE_ARRAY_NUM_ROWS_LOG2:0] curr_num_actv_row_ids_nxt_from_flush;
-wire [PE_ARRAY_NUM_COLS_LOG2:0] curr_num_actv_col_ids_nxt_from_flush;
-wire [MAX_M_SIZE_LOG2-1:0]  num_rows_covered;
-wire [MAX_N_SIZE_LOG2-1:0]  num_cols_covered;
+wire [PE_ARRAY_NUM_ROWS_LOG2+1:0] curr_num_actv_row_ids_nxt_from_idle;
+wire [PE_ARRAY_NUM_COLS_LOG2+1:0] curr_num_actv_col_ids_nxt_from_idle;
+wire [PE_ARRAY_NUM_ROWS_LOG2+1:0] curr_num_actv_row_ids_nxt_from_flush;
+wire [PE_ARRAY_NUM_COLS_LOG2+1:0] curr_num_actv_col_ids_nxt_from_flush;
+wire [MAX_M_SIZE_LOG2:0]  num_rows_covered;
+wire [MAX_N_SIZE_LOG2:0]  num_cols_covered;
 
 assign curr_num_actv_row_ids_nxt_from_idle
     = (M_SIZE_in >= PE_ARRAY_NUM_ROWS)? PE_ARRAY_NUM_ROWS : M_SIZE_in;
@@ -332,7 +332,7 @@ endgenerate
  *  current tile is finished.
  */
 wire compute_to_flush;
-wire curr_end_compute_count;
+wire [MAX_K_SIZE_LOG2+1:0]    curr_end_compute_count;
 
 assign curr_end_compute_count 
     = k_size + (curr_num_actv_row_ids-1) + (curr_num_actv_col_ids-1);
@@ -430,7 +430,7 @@ always @ (posedge CLK) begin
                 opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
                 opnd1_fifo_pop_enables  <= opnd1_fifo_pop_enables_nxt;
                 opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
-                opnd1_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
+                opnd2_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
             end
             else begin
                 compute_count   <= 0;
@@ -467,7 +467,7 @@ always @ (posedge CLK) begin
                 opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
                 opnd1_fifo_pop_enables  <= opnd1_fifo_pop_enables_nxt;
                 opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
-                opnd1_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
+                opnd2_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
             end
         end
     end
@@ -476,63 +476,65 @@ end
 // Sequential logic: at the flush state
 always @ (posedge CLK) begin
     if (RSTn & ~STALL) begin
-        if (is_finished) begin
-            is_idle         <= 1;
-            is_computing    <= 0;
-            is_flushing     <= 0;
+        if (is_flushing) begin
+            if (is_finished) begin
+                is_idle         <= 1;
+                is_computing    <= 0;
+                is_flushing     <= 0;
 
-            m_size          <= 0;
-            k_size          <= 0;
-            n_size          <= 0;
+                m_size          <= 0;
+                k_size          <= 0;
+                n_size          <= 0;
 
-            num_tile_row_ids    <= 0;
-            num_tile_col_ids    <= 0;
+                num_tile_row_ids    <= 0;
+                num_tile_col_ids    <= 0;
 
-            curr_tile_row_id    <= 0;
-            curr_tile_col_id    <= 0;
-            curr_num_actv_row_ids   <= 0;
-            curr_num_actv_col_ids   <= 0;
-            compute_count   <= 0;
-            flush_count     <= 0;
+                curr_tile_row_id    <= 0;
+                curr_tile_col_id    <= 0;
+                curr_num_actv_row_ids   <= 0;
+                curr_num_actv_col_ids   <= 0;
+                compute_count   <= 0;
+                flush_count     <= 0;
 
-            opnd1_sram_addr <= 0;
-            opnd2_sram_addr <= 0;
-            out_sram_addr   <= 0;
-            out_sram_addr_offset    <= 0;
-            opnd1_sram_addr_stride  <= 0;
-            opnd2_sram_addr_stride  <= 0;
-            out_sram_addr_stride    <= 0;
+                opnd1_sram_addr <= 0;
+                opnd2_sram_addr <= 0;
+                out_sram_addr   <= 0;
+                out_sram_addr_offset    <= 0;
+                opnd1_sram_addr_stride  <= 0;
+                opnd2_sram_addr_stride  <= 0;
+                out_sram_addr_stride    <= 0;
 
-            opnd1_fifo_push_enables <= 0;
-            opnd1_fifo_pop_enables  <= 0;
-            opnd2_fifo_push_enables <= 0;
-            opnd2_fifo_pop_enables  <= 0;
-        end
-        else if (flush_to_compute) begin
-            is_idle         <= 0;
-            is_computing    <= 1;
-            is_flushing     <= 0;
+                opnd1_fifo_push_enables <= 0;
+                opnd1_fifo_pop_enables  <= 0;
+                opnd2_fifo_push_enables <= 0;
+                opnd2_fifo_pop_enables  <= 0;
+            end
+            else if (flush_to_compute) begin
+                is_idle         <= 0;
+                is_computing    <= 1;
+                is_flushing     <= 0;
 
-            curr_tile_row_id    <= curr_tile_row_id_nxt;
-            curr_tile_col_id    <= curr_tile_col_id_nxt;
-            curr_num_actv_row_ids   <= curr_num_actv_row_ids_nxt;
-            curr_num_actv_col_ids   <= curr_num_actv_col_ids_nxt;
+                curr_tile_row_id    <= curr_tile_row_id_nxt;
+                curr_tile_col_id    <= curr_tile_col_id_nxt;
+                curr_num_actv_row_ids   <= curr_num_actv_row_ids_nxt;
+                curr_num_actv_col_ids   <= curr_num_actv_col_ids_nxt;
 
-            flush_count     <= 0;
+                flush_count     <= 0;
 
-            opnd1_sram_addr <= opnd1_sram_addr_nxt;
-            opnd2_sram_addr <= opnd2_sram_addr_nxt;
-            out_sram_addr_offset    <= out_sram_addr_offset_nxt;
+                opnd1_sram_addr <= opnd1_sram_addr_nxt;
+                opnd2_sram_addr <= opnd2_sram_addr_nxt;
+                out_sram_addr_offset    <= out_sram_addr_offset_nxt;
 
-            opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
-            opnd1_fifo_pop_enables  <= opnd1_fifo_pop_enables_nxt;
-            opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
-            opnd2_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
-        end
-        else begin
-            flush_count     <= flush_count + 1;
+                opnd1_fifo_push_enables <= opnd1_fifo_push_enables_nxt;
+                opnd1_fifo_pop_enables  <= opnd1_fifo_pop_enables_nxt;
+                opnd2_fifo_push_enables <= opnd2_fifo_push_enables_nxt;
+                opnd2_fifo_pop_enables  <= opnd2_fifo_pop_enables_nxt;
+            end
+            else begin
+                flush_count     <= flush_count + 1;
 
-            out_sram_addr   <= out_sram_addr_nxt;
+                out_sram_addr   <= out_sram_addr_nxt;
+            end
         end
     end
 end
