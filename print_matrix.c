@@ -16,9 +16,9 @@ int main(void) {
 
     srand(time(NULL));
 
-    int M = 256;
-    int K = 256;
-    int N = 256;
+    int M = 128;
+    int K = 128;
+    int N = 128;
 
     // Device configuration under the test
     int num_pe_rows = 32;
