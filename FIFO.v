@@ -3,7 +3,7 @@
 module FIFO #(
     parameter   DEPTH       = 32,   // For 32-by-32 PE arrays
     parameter   DEPTH_LOG2  = 5,    // log_2(32) == 5
-    parameter   BWIDTH      = 8,    // INT8 operands
+    parameter   BWIDTH      = 8     // INT8 operands
 ) 
 (
     // Control inputs
@@ -38,7 +38,7 @@ assign front_popped = front + 1;
 
 // Combinational output logic
 assign IS_EMPTY = (front == rear)? 0 : 1;
-assign IS_FULL  = (front == (rear+1)[DEPTH_LOG2-1:0])? 0 : 1;
+assign IS_FULL  = (front == (rear+1))? 0 : 1;
 assign D_out    = data[rear];
 
 // Sequential logic: push/pop data if the control signals are asserted

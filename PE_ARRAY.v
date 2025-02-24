@@ -7,7 +7,7 @@ module PE_ARRAY #(
     parameter   OPND_BWIDTH             = 8,        // INT8 operands
     parameter   OPND_BWIDTH_LOG2        = 3,        // log_2(8) == 3
     parameter   ACC_BWIDTH              = 32,       // INT32 partial sums
-    parameter   ACC_BWIDTH_LOG2         = 5         // log_2(32) == 5
+    parameter   ACC_BWIDTH_LOG2         = 5,        // log_2(32) == 5
     parameter   PE_ARRAY_NUM_ROWS       = 32,       // # of rows in the PE array
     parameter   PE_ARRAY_NUM_ROWS_LOG2  = 5,        // log_2(32) == 5
     parameter   PE_ARRAY_NUM_COLS       = 32,       // # of cols in the PE array
@@ -42,9 +42,9 @@ wire [OUT_SRAM_BWIDTH-1:0]      out_data        [0:PE_ARRAY_NUM_ROWS];
 
 genvar row_id, col_id;
 generate
-    for (row_id = 0; row_id < PE_ARRAY_NUM_ROWS; row_id++) 
+    for (row_id = 0; row_id < PE_ARRAY_NUM_ROWS; row_id = row_id + 1) 
     begin: gen_pe_row
-        for (col_id = 0; col_id < PE_ARRAY_NUM_COLS; col_id++) 
+        for (col_id = 0; col_id < PE_ARRAY_NUM_COLS; col_id = col_id + 1) 
         begin: gen_pe_col
             PE # (
                 .OPND_BWIDTH    (OPND_BWIDTH),
@@ -60,7 +60,7 @@ generate
                 .OPND2_is_valid_in  (opnd2_is_valid[row_id][col_id]),
 
                 .OPND1_in       (opnd1_data[col_id][((row_id + 1) << OPND_BWIDTH_LOG2)-1:(row_id << OPND_BWIDTH_LOG2)]),
-                .OPND2_in       (opnd2_data[row_id][((col_id + 1) << OPND_BWIDTH_LOG2)-1]:(col_id << OPND_BWIDTH_LOG2)),
+                .OPND2_in       (opnd2_data[row_id][((col_id + 1) << OPND_BWIDTH_LOG2)-1:(col_id << OPND_BWIDTH_LOG2)]),
                 .ACC_in         (out_data[row_id][((col_id + 1) << ACC_BWIDTH_LOG2)-1:(col_id << ACC_BWIDTH_LOG2)]),
 
                 .OPND1_is_valid_out (opnd1_is_valid[col_id + 1][row_id]),

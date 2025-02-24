@@ -14,9 +14,9 @@ wire CLK;
 wire RSTn;
 
 // Matrix config
-reg [test_MAX_M_SIZE_LOG2-1:0] m_size;
-reg [test_MAX_K_SIZE_LOG2-1:0] k_size;
-reg [test_MAX_N_SIZE_LOG2-1:0] n_size;
+reg [`test_MAX_M_SIZE_LOG2-1:0] m_size;
+reg [`test_MAX_K_SIZE_LOG2-1:0] k_size;
+reg [`test_MAX_N_SIZE_LOG2-1:0] n_size;
 
 // For the simulation
 reg start;
@@ -50,14 +50,14 @@ SYSTOLIC_ARRAY #(
     .MAX_K_SIZE_LOG2        (9), 
     .MAX_N_SIZE_LOG2        (9), 
 
-    .OPND1_ROMDATA           = "",
-    .OPND2_ROMDATA           = "",
-    .OUT_WRITEDATA           = ""
+    .OPND1_ROMDATA          ("C:/Users/Owner/matrix1.hex"),
+    .OPND2_ROMDATA          ("C:/Users/Owner/matrix2.hex"),
+    .OUT_WRITEDATA          ("C:/Users/Owner/answer.hex")
 ) dut_systolic_array (
     .RSTn               (RSTn),
     .CLK                (CLK),
     .START              (start),
-    .STALL              (0),
+    .STALL              (1'b0),
 
     .M_SIZE_in          (m_size),
     .K_SIZE_in          (k_size),
@@ -69,13 +69,13 @@ SYSTOLIC_ARRAY #(
 
 initial begin
     num_cycles <= 0;
-    #102    m_size <= test_M;
-    #102    k_size <= test_N;
-    #102    n_size <= test_K;
+    #102    m_size <= `test_M;
+    #102    k_size <= `test_N;
+    #102    n_size <= `test_K;
     #102    start  <= 1'b1;
-    #103    m_size <= test_M;
-    #103    k_size <= test_N;
-    #103    n_size <= test_K;
+    #103    m_size <= 0;
+    #103    k_size <= 0;
+    #103    n_size <= 0;
     #103    start  <= 1'b1;
     #50000  $finish();
 end

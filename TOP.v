@@ -36,7 +36,7 @@ module SYSTOLIC_ARRAY #(
     input wire [MAX_N_SIZE_LOG2-1:0]    N_SIZE_in,  // Mat B: K x N
 
     output wire     IS_FINISHED_out
-)
+);
 
 
 
@@ -104,7 +104,7 @@ CONTROL #(
 
     .M_SIZE_in  (M_SIZE_in),
     .K_SIZE_in  (K_SIZE_in),
-    .K_SIZE_in  (N_SIZE_in),
+    .N_SIZE_in  (N_SIZE_in),
 
     .OPND1_SRAM_ADDR_out    (opnd1_sram_addr),
     .OPND2_SRAM_ADDR_out    (opnd2_sram_addr),
@@ -131,14 +131,15 @@ SRAM # (
     .WRITEDATA  (),
     .BWIDTH     (OPND1_SRAM_BWIDTH),
     .AWIDTH     (OPND1_SRAM_AWIDTH),
-    .NUM_ROWS   (1 << OPND1_SRAM_AWIDTH),
+    .NUM_ROWS   (1 << OPND1_SRAM_AWIDTH)
 ) opnd1_sram (
     .CLK        (CLK),
-    .CSn        (0),
+    .CSn        (1'b0),
     .ADDR       (opnd1_sram_addr),
     .WEn        (opnd1_sram_wen),
-    .BE         (0),
-    .D_in       (0),
+    .BE         (),
+    .D_in       (),
+    .IS_FINISHED_in (1'b0),
     .D_out      (opnd1_data_sram_to_fifo)
 );
 
@@ -147,14 +148,15 @@ SRAM # (
     .WRITEDATA  (),
     .BWIDTH     (OPND2_SRAM_BWIDTH),
     .AWIDTH     (OPND2_SRAM_AWIDTH),
-    .NUM_ROWS   (1 << OPND2_SRAM_AWIDTH),
+    .NUM_ROWS   (1 << OPND2_SRAM_AWIDTH)
 ) opnd2_sram (
     .CLK        (CLK),
-    .CSn        (0),
+    .CSn        (1'b0),
     .ADDR       (opnd2_sram_addr),
     .WEn        (opnd2_sram_wen),
-    .BE         (0),
-    .D_in       (0),
+    .BE         (),
+    .D_in       (),
+    .IS_FINISHED_in (1'b0),
     .D_out      (opnd2_data_sram_to_fifo)
 );
 
@@ -163,14 +165,15 @@ SRAM # (
     .WRITEDATA  (OUT_WRITEDATA),
     .BWIDTH     (OUT_SRAM_BWIDTH),
     .AWIDTH     (OUT_SRAM_AWIDTH),
-    .NUM_ROWS   (1 << OUT_SRAM_AWIDTH),
+    .NUM_ROWS   (1 << OUT_SRAM_AWIDTH)
 ) out_sram (
     .CLK        (CLK),
-    .CSn        (0),
+    .CSn        (1'b0),
     .ADDR       (out_sram_addr),
     .WEn        (out_sram_wen),
     .BE         (out_sram_be),
     .D_in       (out_data_pe_array_to_sram),
+    .IS_FINISHED_in (is_finished),
     .D_out      ()
 );
 
@@ -179,7 +182,7 @@ assign opnd1_data_fifo_to_pe_array[OPND_BWIDTH-1:0]
     = opnd1_data_sram_to_fifo[OPND_BWIDTH-1:0];
 genvar opnd1_fifo_id;
 generate
-    for (opnd1_fifo_id = 1; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id++)
+    for (opnd1_fifo_id = 1; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id = opnd1_fifo_id + 1)
     begin: gen_opnd1_fifos
         FIFO #(
             .DEPTH      (PE_ARRAY_NUM_ROWS),
@@ -196,7 +199,7 @@ generate
             .IS_EMPTY   (),
             .IS_FULL    (),
 
-            .D_out      (opnd1_data_fifo_to_pe_array[((opnd1_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd1_fifo_id << OPND_BWIDTH_LOG2)]),
+            .D_out      (opnd1_data_fifo_to_pe_array[((opnd1_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd1_fifo_id << OPND_BWIDTH_LOG2)])
         );
     end
 endgenerate
@@ -205,7 +208,7 @@ assign opnd2_data_fifo_to_pe_array[OPND_BWIDTH-1:0]
     = opnd2_data_sram_to_fifo[OPND_BWIDTH-1:0];
 genvar opnd2_fifo_id;
 generate
-    for (opnd2_fifo_id = 1; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id++)
+    for (opnd2_fifo_id = 1; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id = opnd2_fifo_id + 1)
     begin: gen_opnd2_fifos
         FIFO #(
             .DEPTH      (PE_ARRAY_NUM_COLS),
@@ -222,7 +225,7 @@ generate
             .IS_EMPTY   (),
             .IS_FULL    (),
 
-            .D_out      (opnd2_data_fifo_to_pe_array[((opnd2_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd2_fifo_id << OPND_BWIDTH_LOG2)]),
+            .D_out      (opnd2_data_fifo_to_pe_array[((opnd2_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd2_fifo_id << OPND_BWIDTH_LOG2)])
         );
     end
 endgenerate
@@ -239,7 +242,7 @@ PE_ARRAY #(
     .PE_ARRAY_NUM_ROWS      (PE_ARRAY_NUM_ROWS),
     .PE_ARRAY_NUM_ROWS_LOG2 (PE_ARRAY_NUM_ROWS_LOG2),
     .PE_ARRAY_NUM_COLS      (PE_ARRAY_NUM_COLS),
-    .PE_ARRAY_NUM_COLS_LOG2 (PE_ARRAY_NUM_COLS_LOG2),
+    .PE_ARRAY_NUM_COLS_LOG2 (PE_ARRAY_NUM_COLS_LOG2)
 ) pe_array (
     .RSTn           (RSTn),
     .CLK            (CLK),
