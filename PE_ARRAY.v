@@ -1,44 +1,44 @@
 `timescale 1ns/10ps
 //----------------------------------------------------------------------//
 module PE_ARRAY #(
-	parameter 	OPND1_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
-	parameter 	OPND2_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
-	parameter 	OUT_SRAM_BWIDTH 		= 32*32,	// Bits per row in the SRAM
+    parameter   OPND1_SRAM_BWIDTH       = 32*8,     // Bits per row in the SRAM
+    parameter   OPND2_SRAM_BWIDTH       = 32*8,     // Bits per row in the SRAM
+    parameter   OUT_SRAM_BWIDTH         = 32*32,    // Bits per row in the SRAM
     parameter   OPND_BWIDTH             = 8,        // INT8 operands
     parameter   OPND_BWIDTH_LOG2        = 3,        // log_2(8) == 3
-    parameter	ACC_BWIDTH	            = 32,	    // INT32 partial sums
+    parameter   ACC_BWIDTH              = 32,       // INT32 partial sums
     parameter   ACC_BWIDTH_LOG2         = 5         // log_2(32) == 5
-	parameter	PE_ARRAY_NUM_ROWS		= 32,		// # of rows in the PE array
-	parameter	PE_ARRAY_NUM_ROWS_LOG2  = 5,		// log_2(32) == 5
-	parameter	PE_ARRAY_NUM_COLS		= 32,		// # of cols in the PE array
-	parameter	PE_ARRAY_NUM_COLS_LOG2  = 5		    // log_2(32) == 5
+    parameter   PE_ARRAY_NUM_ROWS       = 32,       // # of rows in the PE array
+    parameter   PE_ARRAY_NUM_ROWS_LOG2  = 5,        // log_2(32) == 5
+    parameter   PE_ARRAY_NUM_COLS       = 32,       // # of cols in the PE array
+    parameter   PE_ARRAY_NUM_COLS_LOG2  = 5         // log_2(32) == 5
 )
 (
     // Clock/reset/start/stall
-	input wire	RSTn,		// Reset 
-	input wire 	CLK,		// Clock
-	input wire	STALL,		// Stall
+    input wire  RSTn,       // Reset 
+    input wire  CLK,        // Clock
+    input wire  STALL,      // Stall
 
     // Control inputs
     input wire  IS_COMPUTING_in,
     input wire  IS_FLUSHING_in,
-    input wire [PE_ARRAY_NUM_ROWS-1:0] OPND1_IS_VALID_in,
-    input wire [PE_ARRAY_NUM_COLS-1:0] OPND2_IS_VALID_in,
+    input wire [PE_ARRAY_NUM_ROWS-1:0]  OPND1_IS_VALID_in,
+    input wire [PE_ARRAY_NUM_COLS-1:0]  OPND2_IS_VALID_in,
     
     // Data input
-    input wire [OPND1_SRAM_BWIDTH-1:0] OPND1_DATA_in,
-    input wire [OPND2_SRAM_BWIDTH-1:0] OPND2_DATA_in,
+    input wire [OPND1_SRAM_BWIDTH-1:0]  OPND1_DATA_in,
+    input wire [OPND2_SRAM_BWIDTH-1:0]  OPND2_DATA_in,
 
     // Data output
-    output wire [OUT_SRAM_BWIDTH-1:0] OUT_DATA_out
+    output wire [OUT_SRAM_BWIDTH-1:0]   OUT_DATA_out
 );
 
 // Note: for each port, make one more chunk of wires (just for instantiation)
-wire [OPND1_SRAM_BWIDTH-1:0] opnd1_data     [0:PE_ARRAY_NUM_COLS];
-wire [PE_ARRAY_NUM_ROWS-1:0] opnd1_is_valid [0:PE_ARRAY_NUM_COLS];
-wire [OPND2_SRAM_BWIDTH-1:0] opnd2_data     [0:PE_ARRAY_NUM_ROWS];
-wire [PE_ARRAY_NUM_COLS-1:0] opnd2_is_valid [0:PE_ARRAY_NUM_ROWS];
-wire [OUT_SRAM_BWIDTH-1:0] out_data [0:PE_ARRAY_NUM_ROWS];
+wire [OPND1_SRAM_BWIDTH-1:0]    opnd1_data      [0:PE_ARRAY_NUM_COLS];
+wire [PE_ARRAY_NUM_ROWS-1:0]    opnd1_is_valid  [0:PE_ARRAY_NUM_COLS];
+wire [OPND2_SRAM_BWIDTH-1:0]    opnd2_data      [0:PE_ARRAY_NUM_ROWS];
+wire [PE_ARRAY_NUM_COLS-1:0]    opnd2_is_valid  [0:PE_ARRAY_NUM_ROWS];
+wire [OUT_SRAM_BWIDTH-1:0]      out_data        [0:PE_ARRAY_NUM_ROWS];
 
 genvar row_id, col_id;
 generate
@@ -76,10 +76,10 @@ endgenerate
 
 // Input, output ports assignments
 // Inputs
-assign opnd1_data[0] = OPND1_DATA_in;
-assign opnd2_data[0] = OPND2_DATA_in;
-assign opnd1_is_valid[0] = OPND1_IS_VALID_in;
-assign opnd2_is_valid[0] = OPND2_IS_VALID_in;
+assign opnd1_data[0]        = OPND1_DATA_in;
+assign opnd2_data[0]        = OPND2_DATA_in;
+assign opnd1_is_valid[0]    = OPND1_IS_VALID_in;
+assign opnd2_is_valid[0]    = OPND2_IS_VALID_in;
 
 // Outputs
 assign OUT_DATA_out = out_data[PE_ARRAY_NUM_ROWS];

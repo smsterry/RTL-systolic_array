@@ -5,19 +5,19 @@ module SYSTOLIC_ARRAY #(
     parameter   OPND_BWIDTH_LOG2        = 3,        // log_2(8) == 3
     parameter   ACC_BWIDTH              = 32,       // INT32 accumulated outputs
     parameter   ACC_BWIDTH_LOG2         = 5,        // log_2(32) == 5
-    parameter 	OPND1_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
-	parameter 	OPND1_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
-	parameter 	OPND2_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
-	parameter 	OPND2_SRAM_BWIDTH 		= 32*8,		// Bits per row in the SRAM
-	parameter 	OUT_SRAM_AWIDTH 		= 10,		// Address bit width of the SRAM
-	parameter 	OUT_SRAM_BWIDTH 		= 32*32,	// Bits per row in the SRAM
-	parameter	PE_ARRAY_NUM_ROWS		= 32,		// # of rows in the PE array
-	parameter	PE_ARRAY_NUM_ROWS_LOG2  = 5,		// log_2(32) == 5
-	parameter	PE_ARRAY_NUM_COLS		= 32,		// # of cols in the PE array
-	parameter	PE_ARRAY_NUM_COLS_LOG2  = 5,		// log_2(32) == 5
-	parameter	MAX_M_SIZE_LOG2			= 9, 		// # row entries of the first operand matrix == 511
-	parameter	MAX_K_SIZE_LOG2			= 9, 		// # col entries of the first operand matrix == 511
-	parameter	MAX_N_SIZE_LOG2			= 9, 		// # col entries of the second operand matrix == 511
+    parameter   OPND1_SRAM_AWIDTH       = 10,       // Address bit width of the SRAM
+    parameter   OPND1_SRAM_BWIDTH       = 32*8,     // Bits per row in the SRAM
+    parameter   OPND2_SRAM_AWIDTH       = 10,       // Address bit width of the SRAM
+    parameter   OPND2_SRAM_BWIDTH       = 32*8,     // Bits per row in the SRAM
+    parameter   OUT_SRAM_AWIDTH         = 10,       // Address bit width of the SRAM
+    parameter   OUT_SRAM_BWIDTH         = 32*32,    // Bits per row in the SRAM
+    parameter   PE_ARRAY_NUM_ROWS       = 32,       // # of rows in the PE array
+    parameter   PE_ARRAY_NUM_ROWS_LOG2  = 5,        // log_2(32) == 5
+    parameter   PE_ARRAY_NUM_COLS       = 32,       // # of cols in the PE array
+    parameter   PE_ARRAY_NUM_COLS_LOG2  = 5,        // log_2(32) == 5
+    parameter   MAX_M_SIZE_LOG2         = 9,        // # row entries of the first operand matrix == 511
+    parameter   MAX_K_SIZE_LOG2         = 9,        // # col entries of the first operand matrix == 511
+    parameter   MAX_N_SIZE_LOG2         = 9,        // # col entries of the second operand matrix == 511
 
     parameter   OPND1_ROMDATA           = "",
     parameter   OPND2_ROMDATA           = "",
@@ -25,15 +25,15 @@ module SYSTOLIC_ARRAY #(
 )
 (
     // Clock/reset/start/stall
-	input wire	RSTn,		// Reset 
-	input wire 	CLK,		// Clock
-	input wire 	START, 		// Start (ignored while working)
-	input wire	STALL,		// Stall
+    input wire  RSTn,   // Reset 
+    input wire  CLK,    // Clock
+    input wire  START,  // Start (ignored while working)
+    input wire  STALL,  // Stall
 
-	// Matrix config
-	input wire [MAX_M_SIZE_LOG2-1:0] 	M_SIZE_in,	// Mat A: M x K
-	input wire [MAX_K_SIZE_LOG2-1:0] 	K_SIZE_in,
-	input wire [MAX_N_SIZE_LOG2-1:0] 	N_SIZE_in,	// Mat B: K x N
+    // Matrix config
+    input wire [MAX_M_SIZE_LOG2-1:0]    M_SIZE_in,  // Mat A: M x K
+    input wire [MAX_K_SIZE_LOG2-1:0]    K_SIZE_in,
+    input wire [MAX_N_SIZE_LOG2-1:0]    N_SIZE_in,  // Mat B: K x N
 
     output wire     IS_FINISHED_out
 )
@@ -82,20 +82,20 @@ wire [OUT_SRAM_BWIDTH-1:0]      out_data_pe_array_to_sram;
 /* Modules */
 // Controller
 CONTROL #(
-	.OPND1_SRAM_AWIDTH      (OPND1_SRAM_AWIDTH),
-	.OPND1_SRAM_BWIDTH      (OPND1_SRAM_BWIDTH),
-	.OPND2_SRAM_AWIDTH 	    (OPND2_SRAM_AWIDTH),
-	.OPND2_SRAM_BWIDTH      (OPND2_SRAM_BWIDTH),
-	.ACC_BWIDTH_LOG2        (ACC_BWIDTH_LOG2), 
-	.OUT_SRAM_AWIDTH        (OUT_SRAM_AWIDTH),
-	.OUT_SRAM_BWIDTH 	    (OUT_SRAM_BWIDTH),
-	.PE_ARRAY_NUM_ROWS	    (PE_ARRAY_NUM_ROWS),
-	.PE_ARRAY_NUM_ROWS_LOG2 (PE_ARRAY_NUM_ROWS_LOG2),
-	.PE_ARRAY_NUM_COLS	    (PE_ARRAY_NUM_COLS),
-	.PE_ARRAY_NUM_COLS_LOG2 (PE_ARRAY_NUM_COLS_LOG2),	
-	.MAX_M_SIZE_LOG2        (MAX_M_SIZE_LOG2),
-	.MAX_K_SIZE_LOG2        (MAX_K_SIZE_LOG2),
-	.MAX_N_SIZE_LOG2        (MAX_N_SIZE_LOG2)
+    .OPND1_SRAM_AWIDTH      (OPND1_SRAM_AWIDTH),
+    .OPND1_SRAM_BWIDTH      (OPND1_SRAM_BWIDTH),
+    .OPND2_SRAM_AWIDTH      (OPND2_SRAM_AWIDTH),
+    .OPND2_SRAM_BWIDTH      (OPND2_SRAM_BWIDTH),
+    .ACC_BWIDTH_LOG2        (ACC_BWIDTH_LOG2), 
+    .OUT_SRAM_AWIDTH        (OUT_SRAM_AWIDTH),
+    .OUT_SRAM_BWIDTH        (OUT_SRAM_BWIDTH),
+    .PE_ARRAY_NUM_ROWS      (PE_ARRAY_NUM_ROWS),
+    .PE_ARRAY_NUM_ROWS_LOG2 (PE_ARRAY_NUM_ROWS_LOG2),
+    .PE_ARRAY_NUM_COLS      (PE_ARRAY_NUM_COLS),
+    .PE_ARRAY_NUM_COLS_LOG2 (PE_ARRAY_NUM_COLS_LOG2),
+    .MAX_M_SIZE_LOG2        (MAX_M_SIZE_LOG2),
+    .MAX_K_SIZE_LOG2        (MAX_K_SIZE_LOG2),
+    .MAX_N_SIZE_LOG2        (MAX_N_SIZE_LOG2)
 ) controller (
     .RSTn   (RSTn),
     .CLK    (CLK),
