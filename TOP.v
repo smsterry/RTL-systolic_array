@@ -20,7 +20,8 @@ module SYSTOLIC_ARRAY #(
 	parameter	MAX_N_SIZE_LOG2			= 9, 		// # col entries of the second operand matrix == 511
 
     parameter   OPND1_ROMDATA           = "",
-    parameter   OPND2_ROMDATA           = ""
+    parameter   OPND2_ROMDATA           = "",
+    parameter   OUT_WRITEDATA           = ""
 )
 (
     // Clock/reset/start/stall
@@ -127,6 +128,7 @@ CONTROL #(
 // SRAMs
 SRAM # (
     .ROMDATA    (OPND1_ROMDATA),
+    .WRITEDATA  (),
     .BWIDTH     (OPND1_SRAM_BWIDTH),
     .AWIDTH     (OPND1_SRAM_AWIDTH),
     .NUM_ROWS   (1 << OPND1_SRAM_AWIDTH),
@@ -142,6 +144,7 @@ SRAM # (
 
 SRAM # (
     .ROMDATA    (OPND2_ROMDATA),
+    .WRITEDATA  (),
     .BWIDTH     (OPND2_SRAM_BWIDTH),
     .AWIDTH     (OPND2_SRAM_AWIDTH),
     .NUM_ROWS   (1 << OPND2_SRAM_AWIDTH),
@@ -156,6 +159,8 @@ SRAM # (
 );
 
 SRAM # (
+    .ROMDATA    (),
+    .WRITEDATA  (OUT_WRITEDATA),
     .BWIDTH     (OUT_SRAM_BWIDTH),
     .AWIDTH     (OUT_SRAM_AWIDTH),
     .NUM_ROWS   (1 << OUT_SRAM_AWIDTH),
