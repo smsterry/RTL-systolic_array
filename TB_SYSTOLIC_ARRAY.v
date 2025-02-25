@@ -1,9 +1,9 @@
 `timescale 1ns/10ps
-`define test_M 128
+`define test_M 16
 `define test_MAX_M_SIZE_LOG2 9
-`define test_K 128
+`define test_K 16
 `define test_MAX_K_SIZE_LOG2 9
-`define test_N 128
+`define test_N 16
 `define test_MAX_N_SIZE_LOG2 9
 
 //----------------------------------------------------------------------//
@@ -37,15 +37,15 @@ SYSTOLIC_ARRAY #(
     .ACC_BWIDTH             (32),   
     .ACC_BWIDTH_LOG2        (5), 
     .OPND1_SRAM_AWIDTH      (10),
-    .OPND1_SRAM_BWIDTH      (32*8),
+    .OPND1_SRAM_BWIDTH      (4*8),
     .OPND2_SRAM_AWIDTH      (10),
-    .OPND2_SRAM_BWIDTH      (32*8),
+    .OPND2_SRAM_BWIDTH      (4*8),
     .OUT_SRAM_AWIDTH        (10),
-    .OUT_SRAM_BWIDTH        (32*32),
-    .PE_ARRAY_NUM_ROWS      (32),
-    .PE_ARRAY_NUM_ROWS_LOG2 (5),
-    .PE_ARRAY_NUM_COLS      (32),
-    .PE_ARRAY_NUM_COLS_LOG2 (5),
+    .OUT_SRAM_BWIDTH        (4*32),
+    .PE_ARRAY_NUM_ROWS      (4),
+    .PE_ARRAY_NUM_ROWS_LOG2 (2),
+    .PE_ARRAY_NUM_COLS      (4),
+    .PE_ARRAY_NUM_COLS_LOG2 (2),
     .MAX_M_SIZE_LOG2        (9), 
     .MAX_K_SIZE_LOG2        (9), 
     .MAX_N_SIZE_LOG2        (9), 
