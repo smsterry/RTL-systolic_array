@@ -28,6 +28,8 @@ assign data_masked = (rows[ADDR] & ~BE) | (D_in & BE);
 initial begin
     if (ROMDATA != "")
         $readmemh(ROMDATA, rows);
+    if (WRITEDATA != "")
+        #10000 $writememh(WRITEDATA, rows);
 end
 
 assign #1 D_out = outline;
@@ -44,10 +46,10 @@ always @ (posedge CLK) begin
     end
 
     // Only in the simulation
-    if (IS_FINISHED_in) begin
-        if (WRITEDATA != "")
-            $writememh(WRITEDATA, rows);
-    end
+    //if (IS_FINISHED_in) begin
+    //    if (WRITEDATA != "")
+    //        $writememh(WRITEDATA, rows);
+    //end
 end
 
 endmodule
