@@ -306,10 +306,10 @@ generate
     for (opnd1_fifo_id = 0; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id = opnd1_fifo_id + 1)
     begin: gen_fifo1_ctrls_nxt
         assign opnd1_fifo_push_enables_nxt[opnd1_fifo_id] =
-            (compute_count >= curr_k_size)? 0 : 1;
+            ((compute_count + is_computing) >= curr_k_size)? 0 : 1;
         assign opnd1_fifo_pop_enables_nxt[opnd1_fifo_id] = 
-            (opnd1_fifo_id > compute_count)? 0 :
-            (compute_count > (curr_k_size - 1 + opnd1_fifo_id))? 0 : 1;
+            (opnd1_fifo_id > (compute_count + is_computing))? 0 :
+            ((compute_count + is_computing) > (curr_k_size - 1 + opnd1_fifo_id))? 0 : 1;
     end
 endgenerate
 genvar opnd2_fifo_id;
@@ -317,10 +317,10 @@ generate
     for (opnd2_fifo_id = 0; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id = opnd2_fifo_id + 1)
     begin: gen_fifo2_ctrls_nxt
         assign opnd2_fifo_push_enables_nxt[opnd2_fifo_id] =
-            (compute_count >= curr_k_size)? 0 : 1;
+            ((compute_count + is_computing) >= curr_k_size)? 0 : 1;
         assign opnd2_fifo_pop_enables_nxt[opnd2_fifo_id] = 
-            (opnd2_fifo_id > compute_count)? 0 :
-            (compute_count > (curr_k_size - 1 + opnd2_fifo_id))? 0 : 1;
+            (opnd2_fifo_id > (compute_count + is_computing))? 0 :
+            ((compute_count + is_computing) > (curr_k_size - 1 + opnd2_fifo_id))? 0 : 1;
     end
 endgenerate
 
