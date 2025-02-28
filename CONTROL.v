@@ -280,8 +280,8 @@ assign out_sram_addr_nxt =
     (is_computing)? out_sram_addr_nxt_from_compute : out_sram_addr_nxt_while_flush;
 assign out_sram_addr_offset_nxt =
     (is_idle)? 0 :
-    (col_id_end_flag)? out_sram_addr + (num_tile_col_ids << PE_ARRAY_NUM_ROWS_LOG2) :
-    out_sram_addr;
+    (col_id_end_flag)? out_sram_addr_offset + (num_tile_col_ids << PE_ARRAY_NUM_ROWS_LOG2) :
+    out_sram_addr_offset;
 
 /**
  *  [opnd1_fifo_push_enables_nxt, opnd1_fifo_pop_enables_nxt,
@@ -351,7 +351,7 @@ wire is_finished;
 wire all_tile_flushed;
 wire all_row_flushed;
 
-assign all_row_flushed = (flush_count == PE_ARRAY_NUM_ROWS)? 1 : 0;
+assign all_row_flushed = (flush_count < (PE_ARRAY_NUM_ROWS-1))? 0 : 1;
 assign all_tile_flushed 
     = ((curr_tile_row_id == num_tile_row_ids - 1) 
     && (curr_tile_col_id == num_tile_col_ids - 1))? 1 : 0;
