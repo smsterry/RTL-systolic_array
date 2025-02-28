@@ -16,9 +16,9 @@ int main(void) {
 
     srand(time(NULL));
 
-    int M = 128;
-    int K = 128;
-    int N = 128;
+    int M = 16;
+    int K = 16;
+    int N = 16;
 
     // Device configuration under the test
     int num_pe_rows = 32;
@@ -68,40 +68,56 @@ int main(void) {
     }
 
     // print matrices
-    FILE *fp_mat1 = fopen("matrix1.hex", "w");
-    FILE *fp_mat2 = fopen("matrix2.hex", "w");
-    FILE *fp_ans = fopen("answer.hex", "w");
+    FILE *fp_mat1_hex = fopen("matrix1.hex", "w");
+    FILE *fp_mat1_dec = fopen("matrix1.txt", "w");
+    FILE *fp_mat2_hex = fopen("matrix2.hex", "w");
+    FILE *fp_mat2_dec = fopen("matrix2.txt", "w");
+    FILE *fp_ans_hex = fopen("answer.hex", "w");
+    FILE *fp_ans_dec = fopen("answer.txt", "w");
 
     // print matrix A
     for (int r = 0; r < M; r++) {
         for (int c = 0; c < K; c++) {
-            _print_hex(fp_mat1, A_T[r][c], bwidth);
-            if (c % num_pe_rows == num_pe_rows-1) fprintf(fp_mat1, "\n");
+            _print_hex(fp_mat1_hex, A_T[r][c], bwidth);
+            if (c % num_pe_rows == num_pe_rows-1) fprintf(fp_mat1_hex, "\n");
+            fprintf(fp_mat1_dec, "%d ", A_T[r][c]);
         }
-    }   fprintf(fp_mat1, "\n");
+    }   
+    fprintf(fp_mat1_hex, "\n");
+    fprintf(fp_mat1_dec, "\n");
 
     // print matrix B
     for (int r = 0; r < K; r++) {
         for (int c = 0; c < N; c++) {
-            _print_hex(fp_mat2, B[r][c], bwidth);
-            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_mat2, "\n");
+            _print_hex(fp_mat2_hex, B[r][c], bwidth);
+            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_mat2_hex, "\n");
+            fprintf(fp_mat2_dec, "%d ", B[r][c]);
         }
-    }   fprintf(fp_mat2, "\n");
+    }   
+    fprintf(fp_mat2_hex, "\n");
+    fprintf(fp_mat2_dec, "\n");
 
     // print the answer
     for (int r = 0; r < M; r++) {
         for (int c = 0; c < N; c++) {
-            _print_hex(fp_ans, C[r][c], bwidth<<2);
-            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_ans, "\n");
+            _print_hex(fp_ans_hex, C[r][c], bwidth<<2);
+            if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_ans_hex, "\n");
+            fprintf(fp_ans_dec, "%d ", C[r][c]);
         }
-    }   fprintf(fp_ans, "\n");
+    }   
+    fprintf(fp_ans_hex, "\n");
+    fprintf(fp_ans_dec, "\n");
 
-    fclose(fp_mat1);
-    fclose(fp_mat2);
-    fclose(fp_ans);
+    fclose(fp_mat1_hex);
+    fclose(fp_mat1_dec);
+    fclose(fp_mat2_hex);
+    fclose(fp_mat2_dec);
+    fclose(fp_ans_hex);
+    fclose(fp_ans_dec);
     
     // free
     free(A);
+    free(A_T);
     free(B);
     free(C);
 
