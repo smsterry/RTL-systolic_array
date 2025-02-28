@@ -73,7 +73,7 @@ initial begin
             k_size <= `test_N;
             n_size <= `test_K;
             start  <= 1'b1;
-    #50000  $finish();
+    #10000  $finish();
 end
 
 always @ (posedge CLK) begin
