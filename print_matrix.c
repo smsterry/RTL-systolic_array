@@ -24,7 +24,7 @@ int main(void) {
     int num_pe_rows = 32;
     int num_pe_cols = 32;
     int bwidth = 8;
-    int maxval = (1 << bwidth) - 1;
+    int maxval = 20;
 
     // Matrices
     int **A = (int **)malloc(sizeof(int*)*M);
@@ -41,9 +41,9 @@ int main(void) {
     for (int r = 0; r < M; r++) {
         for (int c = 0; c < K; c++) {
             entry = rand() % maxval;
+            if (rand() & 0x1) entry = -entry;
             A[r][c] = entry;
             A_T[c][r] = entry;
-            entry = rand() % maxval;
         }
     }
 
@@ -51,6 +51,7 @@ int main(void) {
     for (int r = 0; r < K; r++) {
         for (int c = 0; c < N; c++) {
             entry = rand() % maxval;
+            if (rand() & 0x1) entry = -entry;
             B[r][c] = entry;
         }
     }
@@ -81,10 +82,9 @@ int main(void) {
             _print_hex(fp_mat1_hex, A_T[r][c], bwidth);
             if (c % num_pe_rows == num_pe_rows-1) fprintf(fp_mat1_hex, "\n");
             fprintf(fp_mat1_dec, "%d ", A_T[r][c]);
-        }
+        }   fprintf(fp_mat1_dec, "\n");
     }   
-    fprintf(fp_mat1_hex, "\n");
-    fprintf(fp_mat1_dec, "\n");
+    fprintf(fp_mat1_hex, "\n");    
 
     // print matrix B
     for (int r = 0; r < K; r++) {
@@ -92,10 +92,9 @@ int main(void) {
             _print_hex(fp_mat2_hex, B[r][c], bwidth);
             if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_mat2_hex, "\n");
             fprintf(fp_mat2_dec, "%d ", B[r][c]);
-        }
+        }   fprintf(fp_mat2_dec, "\n");
     }   
     fprintf(fp_mat2_hex, "\n");
-    fprintf(fp_mat2_dec, "\n");
 
     // print the answer
     for (int r = 0; r < M; r++) {
@@ -103,10 +102,10 @@ int main(void) {
             _print_hex(fp_ans_hex, C[r][c], bwidth<<2);
             if (c % num_pe_cols == num_pe_cols-1) fprintf(fp_ans_hex, "\n");
             fprintf(fp_ans_dec, "%d ", C[r][c]);
-        }
+        }   fprintf(fp_ans_dec, "\n");
     }   
     fprintf(fp_ans_hex, "\n");
-    fprintf(fp_ans_dec, "\n");
+
 
     fclose(fp_mat1_hex);
     fclose(fp_mat1_dec);
