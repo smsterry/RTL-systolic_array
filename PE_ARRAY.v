@@ -61,16 +61,22 @@ generate
                 .OPND1_is_valid_in  (opnd1_is_valid[col_id][row_id]),
                 .OPND2_is_valid_in  (opnd2_is_valid[row_id][col_id]),
 
-                .OPND1_in       (opnd1_data[col_id][((row_id + 1) << OPND_BWIDTH_LOG2)-1:(row_id << OPND_BWIDTH_LOG2)]),
-                .OPND2_in       (opnd2_data[row_id][((col_id + 1) << OPND_BWIDTH_LOG2)-1:(col_id << OPND_BWIDTH_LOG2)]),
-                .ACC_in         (out_data[row_id][((col_id + 1) << ACC_BWIDTH_LOG2)-1:(col_id << ACC_BWIDTH_LOG2)]),
+                .OPND1_in       (opnd1_data[col_id][((PE_ARRAY_NUM_ROWS - row_id) << OPND_BWIDTH_LOG2)-1:
+                                                    ((PE_ARRAY_NUM_ROWS - row_id - 1) << OPND_BWIDTH_LOG2)]),
+                .OPND2_in       (opnd2_data[row_id][((PE_ARRAY_NUM_COLS - col_id) << OPND_BWIDTH_LOG2)-1:
+                                                    ((PE_ARRAY_NUM_COLS - col_id - 1) << OPND_BWIDTH_LOG2)]),
+                .ACC_in         (out_data[row_id][((PE_ARRAY_NUM_COLS - col_id) << ACC_BWIDTH_LOG2)-1:
+                                                  ((PE_ARRAY_NUM_COLS - col_id - 1) << ACC_BWIDTH_LOG2)]),
 
                 .OPND1_is_valid_out (opnd1_is_valid[col_id + 1][row_id]),
                 .OPND2_is_valid_out (opnd2_is_valid[row_id + 1][col_id]),
 
-                .OPND1_out      (opnd1_data[col_id+1][((row_id + 1) << OPND_BWIDTH_LOG2)-1:(row_id << OPND_BWIDTH_LOG2)]),
-                .OPND2_out      (opnd2_data[row_id+1][((col_id + 1) << OPND_BWIDTH_LOG2)-1:(col_id << OPND_BWIDTH_LOG2)]),
-                .ACC_out        (out_data[row_id+1][((col_id + 1) << ACC_BWIDTH_LOG2)-1:(col_id << ACC_BWIDTH_LOG2)])
+                .OPND1_out      (opnd1_data[col_id+1][((PE_ARRAY_NUM_ROWS - row_id) << OPND_BWIDTH_LOG2)-1:
+                                                      ((PE_ARRAY_NUM_ROWS - row_id - 1) << OPND_BWIDTH_LOG2)]),
+                .OPND2_out      (opnd2_data[row_id+1][((PE_ARRAY_NUM_COLS - col_id) << OPND_BWIDTH_LOG2)-1:
+                                                      ((PE_ARRAY_NUM_COLS - col_id - 1) << OPND_BWIDTH_LOG2)]),
+                .ACC_out        (out_data[row_id+1][((PE_ARRAY_NUM_COLS - col_id) << ACC_BWIDTH_LOG2)-1:
+                                                    ((PE_ARRAY_NUM_COLS - col_id - 1) << ACC_BWIDTH_LOG2)])
             );
         end
     end
