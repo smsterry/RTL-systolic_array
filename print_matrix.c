@@ -21,8 +21,8 @@ int main(void) {
     int N = 16;
 
     // Device configuration under the test
-    int num_pe_rows = 32;
-    int num_pe_cols = 32;
+    int num_pe_rows = 4;
+    int num_pe_cols = 4;
     int bwidth = 8;
     int maxval = 20;
 
@@ -82,7 +82,8 @@ int main(void) {
             _print_hex(fp_mat1_hex, A_T[r][c], bwidth);
             if (c % num_pe_rows == num_pe_rows-1) fprintf(fp_mat1_hex, "\n");
             fprintf(fp_mat1_dec, "%d ", A_T[r][c]);
-        }   fprintf(fp_mat1_dec, "\n");
+        }   
+        fprintf(fp_mat1_dec, "\n");
     }   
     fprintf(fp_mat1_hex, "\n");    
 
