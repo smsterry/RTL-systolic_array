@@ -274,8 +274,11 @@ assign opnd2_sram_addr_nxt_while_compute = opnd2_sram_addr + opnd2_sram_addr_str
 assign opnd2_sram_addr_nxt = 
     (is_idle)? 0 :
     (is_flushing)? opnd2_sram_addr_nxt_from_flush : opnd2_sram_addr_nxt_while_compute;
-assign out_sram_addr_nxt_from_compute = out_sram_addr_offset + curr_tile_col_id;
-assign out_sram_addr_nxt_while_flush = out_sram_addr + out_sram_addr_stride;
+assign out_sram_addr_nxt_from_compute = 
+    out_sram_addr_offset 
+    + (num_tile_col_ids << PE_ARRAY_NUM_ROWS_LOG2) - num_tile_col_ids
+    + curr_tile_col_id;
+assign out_sram_addr_nxt_while_flush = out_sram_addr - out_sram_addr_stride;
 assign out_sram_addr_nxt = 
     (is_computing)? out_sram_addr_nxt_from_compute : out_sram_addr_nxt_while_flush;
 assign out_sram_addr_offset_nxt =
@@ -306,10 +309,12 @@ generate
     for (opnd1_fifo_id = 0; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id = opnd1_fifo_id + 1)
     begin: gen_fifo1_ctrls_nxt
         assign opnd1_fifo_push_enables_nxt[opnd1_fifo_id] =
-            ((compute_count + is_computing) >= curr_k_size)? 0 : 1;
+            (~is_computing)? 0 :
+            (compute_count >= curr_k_size)? 0 : 1;
         assign opnd1_fifo_pop_enables_nxt[opnd1_fifo_id] = 
-            (opnd1_fifo_id > (compute_count + is_computing))? 0 :
-            ((compute_count + is_computing) > (curr_k_size - 1 + opnd1_fifo_id))? 0 : 1;
+            (~is_computing)? 0 :
+            (opnd1_fifo_id > compute_count)? 0 :
+            (compute_count > (curr_k_size - 1 + opnd1_fifo_id))? 0 : 1;
     end
 endgenerate
 genvar opnd2_fifo_id;
@@ -317,10 +322,12 @@ generate
     for (opnd2_fifo_id = 0; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id = opnd2_fifo_id + 1)
     begin: gen_fifo2_ctrls_nxt
         assign opnd2_fifo_push_enables_nxt[opnd2_fifo_id] =
-            ((compute_count + is_computing) >= curr_k_size)? 0 : 1;
+            (~is_computing)? 0 :
+            (compute_count >= curr_k_size)? 0 : 1;
         assign opnd2_fifo_pop_enables_nxt[opnd2_fifo_id] = 
-            (opnd2_fifo_id > (compute_count + is_computing))? 0 :
-            ((compute_count + is_computing) > (curr_k_size - 1 + opnd2_fifo_id))? 0 : 1;
+            (~is_computing)? 0 :
+            (opnd2_fifo_id > compute_count)? 0 :
+            (compute_count > (curr_k_size - 1 + opnd2_fifo_id))? 0 : 1;
     end
 endgenerate
 
@@ -335,7 +342,7 @@ wire compute_to_flush;
 wire [MAX_K_SIZE_LOG2+1:0]    curr_end_compute_count;
 
 assign curr_end_compute_count 
-    = k_size + (curr_num_actv_row_ids-1) + (curr_num_actv_col_ids-1);
+    = k_size + (curr_num_actv_row_ids + curr_num_actv_col_ids - 1);
 assign compute_to_flush
     = (compute_count == curr_end_compute_count)? 1 : 0;
 
