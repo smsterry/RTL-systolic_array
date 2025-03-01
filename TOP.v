@@ -178,8 +178,8 @@ SRAM # (
 );
 
 // FIFOs
-assign opnd1_data_fifo_to_pe_array[OPND_BWIDTH-1:0] 
-    = opnd1_data_sram_to_fifo[OPND_BWIDTH-1:0];
+assign opnd1_data_fifo_to_pe_array[(OPND1_SRAM_BWIDTH - 1):(OPND1_SRAM_BWIDTH - OPND_BWIDTH)] 
+    = opnd1_data_sram_to_fifo[(OPND1_SRAM_BWIDTH - 1):(OPND1_SRAM_BWIDTH - OPND_BWIDTH)];
 genvar opnd1_fifo_id;
 generate
     for (opnd1_fifo_id = 1; opnd1_fifo_id < PE_ARRAY_NUM_ROWS; opnd1_fifo_id = opnd1_fifo_id + 1)
@@ -194,18 +194,22 @@ generate
             .PUSHE      (opnd1_fifo_pushe[opnd1_fifo_id]),
             .POPE       (opnd1_fifo_pope[opnd1_fifo_id]),
             
-            .D_in       (opnd1_data_sram_to_fifo[((opnd1_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd1_fifo_id << OPND_BWIDTH_LOG2)]),
+            .D_in       (opnd1_data_sram_to_fifo
+                         [((PE_ARRAY_NUM_ROWS - opnd1_fifo_id) << OPND_BWIDTH_LOG2)-1:
+                          ((PE_ARRAY_NUM_ROWS - opnd1_fifo_id - 1) << OPND_BWIDTH_LOG2)]),
             
             .IS_EMPTY   (),
             .IS_FULL    (),
 
-            .D_out      (opnd1_data_fifo_to_pe_array[((opnd1_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd1_fifo_id << OPND_BWIDTH_LOG2)])
+            .D_out      (opnd1_data_fifo_to_pe_array
+                         [((PE_ARRAY_NUM_ROWS - opnd1_fifo_id) << OPND_BWIDTH_LOG2)-1:
+                          ((PE_ARRAY_NUM_ROWS - opnd1_fifo_id - 1) << OPND_BWIDTH_LOG2)])
         );
     end
 endgenerate
 
-assign opnd2_data_fifo_to_pe_array[OPND_BWIDTH-1:0] 
-    = opnd2_data_sram_to_fifo[OPND_BWIDTH-1:0];
+assign opnd2_data_fifo_to_pe_array[(OPND2_SRAM_BWIDTH - 1):(OPND2_SRAM_BWIDTH - OPND_BWIDTH)] 
+    = opnd2_data_sram_to_fifo[(OPND2_SRAM_BWIDTH - 1):(OPND2_SRAM_BWIDTH - OPND_BWIDTH)];
 genvar opnd2_fifo_id;
 generate
     for (opnd2_fifo_id = 1; opnd2_fifo_id < PE_ARRAY_NUM_COLS; opnd2_fifo_id = opnd2_fifo_id + 1)
@@ -220,12 +224,16 @@ generate
             .PUSHE      (opnd2_fifo_pushe[opnd2_fifo_id]),
             .POPE       (opnd2_fifo_pope[opnd2_fifo_id]),
             
-            .D_in       (opnd2_data_sram_to_fifo[((opnd2_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd2_fifo_id << OPND_BWIDTH_LOG2)]),
+            .D_in       (opnd2_data_sram_to_fifo
+                        [((PE_ARRAY_NUM_COLS - opnd2_fifo_id) << OPND_BWIDTH_LOG2)-1:
+                         ((PE_ARRAY_NUM_COLS - opnd2_fifo_id - 1) << OPND_BWIDTH_LOG2)]),
             
             .IS_EMPTY   (),
             .IS_FULL    (),
 
-            .D_out      (opnd2_data_fifo_to_pe_array[((opnd2_fifo_id + 1) << OPND_BWIDTH_LOG2)-1:(opnd2_fifo_id << OPND_BWIDTH_LOG2)])
+            .D_out      (opnd2_data_fifo_to_pe_array
+                        [((PE_ARRAY_NUM_COLS - opnd2_fifo_id) << OPND_BWIDTH_LOG2)-1:
+                         ((PE_ARRAY_NUM_COLS - opnd2_fifo_id - 1) << OPND_BWIDTH_LOG2)])
         );
     end
 endgenerate
