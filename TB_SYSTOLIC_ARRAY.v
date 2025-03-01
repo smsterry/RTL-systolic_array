@@ -69,7 +69,7 @@ SYSTOLIC_ARRAY #(
 
 initial begin
     num_cycles <= 0;
-    #102    m_size <= `test_M;
+    #200    m_size <= `test_M;
             k_size <= `test_N;
             n_size <= `test_K;
             start  <= 1'b1;
