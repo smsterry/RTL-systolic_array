@@ -69,13 +69,15 @@ always @ (posedge CLK, negedge RSTn) begin
     else if (~STALL) begin
         // Compute if corresponding control signals are asserted
         if (COMPUTE & ~FLUSH) begin
-            opnd1_is_valid  <= OPND1_is_valid_in;
-            opnd2_is_valid  <= OPND2_is_valid_in;
-            if (opnd1_is_valid & opnd2_is_valid) begin
+            if (OPND1_is_valid_in & OPND2_is_valid_in) begin
                 opnd1_buf       <= OPND1_in;
                 opnd2_buf       <= OPND2_in;
+            end
+            if (opnd1_is_valid & opnd2_is_valid) begin
                 acc_buf         <= acc_nxt;
             end
+            opnd1_is_valid  <= OPND1_is_valid_in;
+            opnd2_is_valid  <= OPND2_is_valid_in;
         end
         if (FLUSH & ~COMPUTE) begin
             acc_buf <= ACC_in;
